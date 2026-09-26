@@ -1,0 +1,24 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import FeedCard from '@/components/FeedCard.astro';
+import { getVisibleEntries } from '@/lib/content';
+
+const entries = (await getVisibleEntries('posts')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+---
+
+<BaseLayout
+  title="博客"
+  description="整理过的正式文章：从流水般的速记中沉淀下来的想法。"
+>
+  <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-ink">博客</h1>
+      <p class="mt-2 text-ink-2">值得被搜索和引用的完整文章。</p>
+    </header>
+    <div class="flex flex-col gap-4">
+      {entries.map((entry) => <FeedCard entry={entry} />)}
+    </div>
+  </div>
+</BaseLayout>

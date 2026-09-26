@@ -1,0 +1,27 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import FeedCard from '@/components/FeedCard.astro';
+import { getFeedEntries } from '@/lib/content';
+
+export async function getStaticPaths() {
+  const entries = await getFeedEntries();
+  const tags = new Set<string>();
+  for (const e of entries) for (const t of e.data.tags) tags.add(t);
+  return [...tags].map((tag) => ({ params: { tag } }));
+}
+
+const { tag } = Astro.props;
+const entries = (await getFeedEntries()).filter((e) => e.data.tags.includes(tag));
+---
+
+<BaseLayout title={`标签：${tag}`} description={`标签 #${tag} 下的全部内容。`}>
+  <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-ink">#{tag}</h1>
+      <p class="mt-2 text-ink-2">共 {entries.length} 条内容。</p>
+    </header>
+    <div class="flex flex-col gap-4">
+      {entries.map((entry) => <FeedCard entry={entry} />)}
+    </div>
+  </div>
+</BaseLayout>

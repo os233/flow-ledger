@@ -1,0 +1,17 @@
+---
+import ArticleLayout from '@/layouts/ArticleLayout.astro';
+import { getCollection } from 'astro:content';
+import { isVisible } from '@/lib/content';
+
+/** private 永不构建；draft 仅本地开发可见 */
+export async function getStaticPaths() {
+  const entries = await getCollection('posts');
+  return entries
+    .filter((e) => isVisible(e.data.status))
+    .map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+---
+
+<ArticleLayout entry={entry} />

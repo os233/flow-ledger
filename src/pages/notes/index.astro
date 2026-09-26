@@ -1,0 +1,24 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import FeedCard from '@/components/FeedCard.astro';
+import { getVisibleEntries } from '@/lib/content';
+
+const entries = (await getVisibleEntries('notes')).sort(
+  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+);
+---
+
+<BaseLayout
+  title="灵感速记"
+  description="短平快的灵感记录：一句话也值得留下，之后可整理成正式文章。"
+>
+  <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-ink">灵感速记</h1>
+      <p class="mt-2 text-ink-2">碎片即资产：这里收录所有公开的速记想法。</p>
+    </header>
+    <div class="flex flex-col gap-4">
+      {entries.map((entry) => <FeedCard entry={entry} />)}
+    </div>
+  </div>
+</BaseLayout>

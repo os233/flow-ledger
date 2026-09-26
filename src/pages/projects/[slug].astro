@@ -1,0 +1,47 @@
+---
+import ArticleLayout from '@/layouts/ArticleLayout.astro';
+import { getCollection } from 'astro:content';
+import { isVisible } from '@/lib/content';
+import { formatDate } from '@/lib/site';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('projects');
+  return entries
+    .filter((e) => isVisible(e.data.status))
+    .map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const repoUrl = `https://github.com/${entry.data.repo}`;
+---
+
+<ArticleLayout entry={entry}>
+  <div slot="source" class="not-prose mt-6 rounded-card border border-line bg-raised p-4 text-sm">
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-ink-2">
+      <div class="flex justify-between gap-2 sm:block">
+        <dt class="text-ink-3">GitHub 仓库</dt>
+        <dd>
+          <a href={repoUrl} class="text-link hover:underline" rel="noopener noreferrer">
+            {entry.data.repo}
+          </a>
+        </dd>
+      </div>
+      {
+        entry.data.homepage && (
+          <div class="flex justify-between gap-2 sm:block">
+            <dt class="text-ink-3">主页</dt>
+            <dd>
+              <a href={entry.data.homepage} class="text-link hover:underline" rel="noopener noreferrer">
+                {entry.data.homepage}
+              </a>
+            </dd>
+          </div>
+        )
+      }
+      <div class="flex justify-between gap-2 sm:block">
+        <dt class="text-ink-3">收录日期</dt>
+        <dd>{formatDate(entry.data.date)}</dd>
+      </div>
+    </dl>
+  </div>
+</ArticleLayout>

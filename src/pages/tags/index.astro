@@ -1,0 +1,35 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getFeedEntries, getTagCounts } from '@/lib/content';
+import { withBase } from '@/lib/site';
+
+const entries = await getFeedEntries();
+const tagCounts = await getTagCounts(entries);
+const tags = [...tagCounts.entries()].sort(
+  (a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh-CN'),
+);
+---
+
+<BaseLayout title="标签" description="全站标签索引：跨灵感、归档、项目与博客聚合内容。">
+  <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-ink">标签</h1>
+      <p class="mt-2 text-ink-2">共 {tags.length} 个标签。</p>
+    </header>
+    <ul class="flex flex-wrap gap-2.5">
+      {
+        tags.map(([tag, count]) => (
+          <li>
+            <a
+              href={withBase(`/tags/${tag}/`)}
+              class="inline-flex items-center gap-1.5 rounded-pill border border-line bg-raised px-3.5 py-1.5 text-sm text-ink-2 hover:border-accent hover:text-accent transition-colors"
+            >
+              #{tag}
+              <span class="text-xs text-ink-3">{count}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</BaseLayout>

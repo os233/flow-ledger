@@ -1,0 +1,26 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { withBase } from '@/lib/site';
+---
+
+<BaseLayout title="页面不存在" description="你访问的页面不存在或已被移动。">
+  <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-24 text-center">
+    <p class="text-6xl font-bold text-accent" aria-hidden="true">404</p>
+    <h1 class="mt-4 text-xl sm:text-2xl font-semibold text-ink">这条流水没有记录</h1>
+    <p class="mt-3 text-ink-2">你访问的页面不存在，或已被移动、删除。</p>
+    <div class="mt-8 flex justify-center gap-4">
+      <a
+        href={withBase('/')}
+        class="rounded-pill bg-accent px-5 py-2.5 text-sm font-medium text-white hover:opacity-90 transition-opacity"
+      >
+        回到首页
+      </a>
+      <a
+        href={withBase('/posts/')}
+        class="rounded-pill border border-line px-5 py-2.5 text-sm text-ink-2 hover:text-ink transition-colors"
+      >
+        浏览博客
+      </a>
+    </div>
+  </div>
+</BaseLayout>

@@ -1,0 +1,29 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import FeedCard from '@/components/FeedCard.astro';
+import { getFeedEntries } from '@/lib/content';
+import { SITE_DESCRIPTION } from '@/lib/site';
+
+const feed = (await getFeedEntries()).slice(0, 30);
+---
+
+<BaseLayout description={SITE_DESCRIPTION}>
+  <div class="mx-auto w-full max-w-3xl px-4 sm:px-6">
+    <section class="py-10 sm:py-14 text-center sm:text-left">
+      <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-ink">
+        流水账<span class="text-accent">。</span>
+      </h1>
+      <p class="mt-3 text-ink-2 leading-relaxed max-w-xl">
+        先记下、再整理、可长期保存的数字花园：灵感速记、AI 对话归档、项目动态与博客，共用一套
+        Markdown 内容资产。
+      </p>
+    </section>
+
+    <section aria-label="首页时间流" class="pb-4">
+      <h2 class="text-sm font-medium text-ink-3 uppercase tracking-wider mb-4">时间流</h2>
+      <div class="flex flex-col gap-4">
+        {feed.map((entry) => <FeedCard entry={entry} />)}
+      </div>
+    </section>
+  </div>
+</BaseLayout>
