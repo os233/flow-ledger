@@ -20,11 +20,11 @@ public/media/   # 图片与附件
 
 统一元数据（Frontmatter）：`title`、`date`、`updated`、`tags`、`status`（`draft` / `private` / `public`）、`summary`。字段规范见 [docs/content-guide.md](docs/content-guide.md)。
 
-> 标为 `status: private` 的内容在构建期被过滤，不会进入线上产物。
+> 标为 `status: private` 的内容在构建期被过滤，不会进入线上产物。**但构建期过滤不是访问控制**：公开仓库及其 Git 历史对任何人都可读，敏感内容不得提交到公开仓库，详见 [docs/content-guide.md](docs/content-guide.md) 的「隐私红线」。
 
 ## 本地开发
 
-要求 Node.js ≥ 18.17（CI 与部署当前使用 Node 20）。
+推荐 Node.js 24 LTS（CI 与部署使用 Node 24，见计划书第 3 节「版本与运行时基线」；Node 22 亦可，仅使用仍受上游支持的 LTS 版本）。
 
 ```bash
 npm install        # 安装依赖
@@ -49,9 +49,27 @@ npm run fetch:github
 
 | 工作流 | 触发 | 作用 |
 | --- | --- | --- |
-| CI | push / PR | 类型检查、构建、内部链接检查 |
+| CI | push / PR | 类型检查、构建、内部链接与内容可见性检查 |
 | Deploy | push main | 构建并部署到 GitHub Pages |
 | Refresh GitHub data | 每日定时 | 刷新项目卡片的 Stars/Forks 等缓存数据 |
+
+## 备份与恢复
+
+Git 远端**不是**私密内容的安全边界，也不等同于独立备份（计划书第 9 节）：
+
+- **备份对象**：仓库本身 + `content/`（内容源）+ `src/data/github-cache.json`（可重建，非关键）；
+- **恢复步骤**（从克隆重建站点，已演练验证）：
+
+  ```bash
+  git clone <仓库地址> flow-ledger-restore
+  cd flow-ledger-restore
+  npm ci
+  npm run build          # 产出 dist/，含类型检查、链接与可见性检查
+  npm run preview        # 验证站点可正常渲染
+  ```
+
+- **恢复点目标**：每次 push 到远端即为一个恢复点；本地未提交内容不在任何恢复点内，重要草稿请尽早提交；
+- 私密内容不走公开仓库备份，按「隐私红线」使用私有仓库或加密备份。
 
 ## 许可证
 

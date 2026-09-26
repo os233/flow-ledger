@@ -5,6 +5,12 @@ export const SITE_DESCRIPTION =
   '一个「先记下、再整理、可长期保存」的个人数字花园：灵感速记、AI 对话归档、项目动态与博客。';
 export const OG_IMAGE_PATH = 'og-default.png';
 
+/** TODO: 替换为你的 GitHub 用户名（页脚个人主页链接） */
+export const GITHUB_USERNAME = '';
+export const GITHUB_PROFILE_URL = GITHUB_USERNAME
+  ? `https://github.com/${GITHUB_USERNAME}`
+  : 'https://github.com/';
+
 /** Astro 注入的基础路径：部署为 '/flow-ledger'，本地根路径预览时为 '/' */
 const RAW_BASE = import.meta.env.BASE_URL;
 const BASE = RAW_BASE.endsWith('/') ? RAW_BASE.slice(0, -1) : RAW_BASE;
