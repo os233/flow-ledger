@@ -1,0 +1,37 @@
+# CI：类型检查、构建、内部链接检查（计划书 P0）
+name: CI
+
+on:
+  push:
+    branches-ignore:
+      - main # main 由 Deploy 工作流负责
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check & build
+        run: npm run build
+
+      - name: Check internal links
+        run: node scripts/check-links.mjs

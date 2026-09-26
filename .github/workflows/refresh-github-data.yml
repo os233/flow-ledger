@@ -1,0 +1,43 @@
+# 每日刷新 GitHub 项目卡片缓存数据并提交（计划书 P0：项目卡片每日由 Actions 刷新）
+name: Refresh GitHub data
+
+on:
+  schedule:
+    - cron: '23 2 * * *' # 每天 UTC 02:23
+  workflow_dispatch:
+
+permissions:
+  contents: write # 提交刷新后的缓存文件
+
+concurrency:
+  group: refresh-github-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Fetch GitHub repo data
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # 仅提升匿名限额，密钥不落盘、不进产物
+        run: node scripts/fetch-github-data.mjs
+
+      - name: Commit refreshed cache
+        run: |
+          if git diff --quiet src/data/github-cache.json; then
+            echo "缓存无变化，跳过提交"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add src/data/github-cache.json
+            git commit -m "chore: refresh GitHub project data cache"
+            git push
+          fi
