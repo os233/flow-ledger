@@ -1,0 +1,42 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { withBase } from '@/lib/site';
+
+const pagefindUiSrc = withBase('/pagefind/pagefind-ui.js');
+---
+
+<BaseLayout title="搜索" description="全站全文搜索（灵感、归档、项目与博客）。">
+  <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-ink">搜索</h1>
+      <p class="mt-2 text-ink-2">全文检索灵感速记、AI 归档、项目与博客。</p>
+    </header>
+
+    <p
+      id="search-hint"
+      class="hidden rounded-card border border-line bg-muted p-4 text-sm text-ink-2"
+    >
+      搜索索引尚未就绪：本地开发模式不生成索引。运行
+      <code class="rounded bg-raised px-1.5 py-0.5">npm run build && npm run preview</code>
+      或访问线上站点使用搜索。
+    </p>
+
+    <div id="search"></div>
+  </div>
+
+  <script is:inline src={pagefindUiSrc} defer></script>
+  <script>
+    interface PagefindUICtor {
+      new (options: Record<string, unknown>): unknown;
+    }
+    const el = document.getElementById('search');
+    const hint = document.getElementById('search-hint');
+    const ctor = (window as unknown as { PagefindUI?: PagefindUICtor }).PagefindUI;
+    if (el && ctor) {
+      new ctor({ element: '#search', showSubResults: true, showImages: false });
+      hint?.remove();
+    } else {
+      hint?.classList.remove('hidden');
+    }
+  </script>
+</BaseLayout>

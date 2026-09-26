@@ -35,6 +35,17 @@
   /* 布局 */
   --content-max-width: 48rem;
   --header-height: 3.5rem;
+
+  /* Pagefind UI 对接设计令牌（明暗随 .dark 自动切换） */
+  --pagefind-ui-scale: 0.95;
+  --pagefind-ui-primary: var(--color-accent);
+  --pagefind-ui-text: var(--color-text);
+  --pagefind-ui-background: var(--color-bg-raised);
+  --pagefind-ui-border: var(--color-border);
+  --pagefind-ui-tag: var(--color-bg-muted);
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: var(--radius-card);
+  --pagefind-ui-font: var(--font-sans);
 }
 
 .dark {

@@ -54,11 +54,31 @@ if (!publicSlugFound) {
   violations.push('正向对照失败：公开笔记 slug 未出现在任何产物中（产物可能为空或异常）');
 }
 
+// 搜索索引检查（计划书 P1-B5）：Pagefind 碎片为 gzip 压缩，解压后扫描
+// 索引由 dist 构建，本检查提供独立于构建日志的机器级验证
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import zlib from 'node:zlib';
+
+const fragmentDir = path.join(DIST, 'pagefind', 'fragment');
+let publicInIndex = false;
+if (existsSync(fragmentDir)) {
+  for (const f of readdirSync(fragmentDir).filter((f) => f.endsWith('.pf_fragment'))) {
+    const text = zlib.gunzipSync(readFileSync(path.join(fragmentDir, f))).toString('utf8');
+    scanned += 1;
+    if (text.includes(PRIVATE_SLUG)) violations.push(`私密夹具出现在搜索索引 ${f}`);
+    if (text.includes(DRAFT_SLUG)) violations.push(`草稿夹具出现在搜索索引 ${f}`);
+    if (text.includes(PUBLIC_SLUG)) publicInIndex = true;
+  }
+  if (!publicInIndex) {
+    violations.push('搜索索引缺少公开内容对照页（索引可能为空或异常）');
+  }
+}
+
 if (violations.length > 0) {
   console.error(`[check-visibility] 发现 ${violations.length} 处可见性违规：`);
   for (const v of violations) console.error(`  ✗ ${v}`);
   process.exit(1);
 }
 console.log(
-  `[check-visibility] ${scanned} 个文本产物检查通过：私密/草稿夹具未泄漏，公开内容对照存在`,
+  `[check-visibility] ${scanned} 个文本产物检查通过：私密/草稿夹具未泄漏（含搜索索引），公开内容对照存在`,
 );

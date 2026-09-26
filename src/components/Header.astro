@@ -16,8 +16,7 @@ const isActive = (href: string) =>
   href === withBase('/') ? path === withBase('/') : path.startsWith(href);
 
 /** Header / Feed / Card / Article / Footer：与 P3 主题 slot 命名对齐 */
-const nav = links.map((l) => ({ ...l, active: isActive(l.href) }));
----
+const nav = links.map((l) => ({ ...l, active: isActive(l.href) }));---
 
 <header class="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur">
   <div class="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
@@ -52,6 +51,16 @@ const nav = links.map((l) => ({ ...l, active: isActive(l.href) }));
     </nav>
 
     <div class="flex items-center gap-2">
+      <a
+        href={withBase('/search/')}
+        class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink-2 hover:text-ink hover:border-ink-3 transition-colors"
+        aria-label="搜索"
+      >
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M21 21l-4.35-4.35"></path>
+        </svg>
+      </a>
       <ThemeToggle />
       <button
         id="menu-open"
