@@ -29,3 +29,6 @@ pnpm-debug.log*
 
 # ZCode session files
 .zcode/
+
+# 导出产物
+export/

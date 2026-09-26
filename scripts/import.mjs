@@ -21,7 +21,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import TurndownService from 'turndown';
 import { XMLParser } from 'fast-xml-parser';
-import iconv from 'iconv-lite';
+import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, normalizeDate } from './lib/content-io.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MEDIA_DIR = path.join(ROOT, 'public', 'media');
@@ -62,18 +62,6 @@ function parseArgs(argv) {
   return opts;
 }
 
-function slugify(text) {
-  const ascii = text
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .match(/[a-z0-9]+(?:-[a-z0-9]+)*/g);
-  return (ascii ?? []).join('-').slice(0, 60).replace(/^-+|-+$/g, '');
-}
-
-function yamlEscape(v) {
-  return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-}
-
 const usedSlugs = new Set();
 async function pickPath(dir, base) {
   let candidate = base;
@@ -84,61 +72,6 @@ async function pickPath(dir, base) {
   }
   usedSlugs.add(candidate);
   return { name: `${candidate}.md`, full: path.join(dir, `${candidate}.md`), renamed: n > 1 ? String(n) : '' };
-}
-
-/** 读文件并检测编码：UTF-8 BOM / 声明的 charset（支持 GBK/GB18030）/ 默认 UTF-8 */
-async function readDecoded(file) {
-  const buf = await readFile(file);
-  if (buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf) {
-    return { text: iconv.decode(buf.subarray(3), 'utf8'), encoding: 'utf-8 (BOM)' };
-  }
-  const head = buf.subarray(0, 4096).toString('latin1');
-  const meta = head.match(/<meta[^>]+charset=["']?([\w-]+)/i);
-  const declared = meta?.[1]?.toLowerCase();
-  if (declared && declared !== 'utf-8' && declared !== 'utf8' && iconv.encodingExists(declared)) {
-    return { text: iconv.decode(buf, declared), encoding: declared };
-  }
-  // 无 BOM 无声明：检测是否合法 UTF-8（非法则按 GB18030 兜底，报告记录）
-  const utf8 = buf.toString('utf8');
-  if (Buffer.compare(Buffer.from(utf8, 'utf8'), buf) === 0) {
-    return { text: utf8, encoding: 'utf-8' };
-  }
-  return { text: iconv.decode(buf, 'gb18030'), encoding: 'gb18030 (未声明，按 GB 兜底)' };
-}
-
-function splitFrontmatter(text) {
-  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
-  if (!m) return { frontmatter: null, body: text, broken: false };
-  return { frontmatter: m[1], body: m[2], broken: false };
-}
-
-/** 极简 YAML frontmatter 读取：仅取顶层 title/date/tags/status/summary 简单值 */
-function parseSimpleFrontmatter(fm) {
-  const result = {};
-  let broken = false;
-  for (const line of fm.split(/\r?\n/)) {
-    const m = line.match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
-    if (!m) {
-      if (line.trim() && !line.startsWith('#')) broken = true; // 嵌套/缩进异常
-      continue;
-    }
-    result[m[1].toLowerCase()] = m[2].trim().replace(/^["']|["']$/g, '');
-  }
-  return { data: result, broken };
-}
-
-function normalizeDate(input, { source = '', tzNote = [] } = {}) {
-  if (!input) return { date: new Date().toISOString().slice(0, 10), ok: false };
-  const d = new Date(input);
-  if (Number.isNaN(d.getTime())) {
-    tzNote.push(`无法解析日期 "${input}"（${source}），已用今天代替`);
-    return { date: new Date().toISOString().slice(0, 10), ok: false };
-  }
-  if (/[T-Z+]/i.test(input.trim())) {
-    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60_000);
-    tzNote.push(`日期含时区（${input} → UTC ${d.toISOString()}），frontmatter 记录 UTC 日期 ${local.toISOString().slice(0, 10)}`);
-  }
-  return { date: d.toISOString().slice(0, 10), ok: true };
 }
 
 /** 复制一张相对图片；成功返回目标 URL，失败返回 null 并记录损失 */
@@ -222,7 +155,7 @@ async function importMarkdown(file, o) {
   }
   const title = data.title ?? path.basename(file).replace(/\.(md|markdown)$/i, '');
   const tzNote = [];
-  const { date } = normalizeDate(data.date ?? fileDate(file), { source: 'frontmatter', tzNote });
+  const date = normalizeDate(data.date ?? fileDate(file), tzNote, 'frontmatter');
   notes.push(...tzNote);
   if (data.status && data.status !== 'public') notes.push(`源 status: ${data.status} → 导入状态 ${o.status}`);
 
@@ -233,7 +166,7 @@ async function importMarkdown(file, o) {
   return {
     title,
     date,
-    tags: (data.tags ?? '').replace(/[\[\]]/g, '').split(',').map((t) => t.trim()).filter(Boolean),
+    tags: parseTags(data.tags),
     summary: data.summary ?? '',
     body: img.md,
     sourceLink: data.sourceurl ?? null,
@@ -254,7 +187,7 @@ async function importHtml(file, o) {
     text.match(/<time[^>]*datetime=["']([^"']+)["']/i) ??
     text.match(/<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i);
   const tzNote = [];
-  const { date } = normalizeDate(dateMatch?.[1] ?? fileDate(file), { source: dateMatch ? 'time/meta 标签' : '文件时间', tzNote });
+  const date = normalizeDate(dateMatch?.[1] ?? fileDate(file), tzNote, dateMatch ? 'time/meta 标签' : '文件时间');
   notes.push(...tzNote);
 
   // 抽取 body，避免把 head 里的脚本样式转成 Markdown
@@ -297,7 +230,7 @@ async function importWxr(file, o) {
       continue;
     }
     const tzNote = [];
-    const { date } = normalizeDate(item['wp:post_date_gmt'] ?? item.pubDate, { source: 'wp:post_date_gmt/pubDate', tzNote });
+    const date = normalizeDate(item['wp:post_date_gmt'] ?? item.pubDate, tzNote, 'wp:post_date_gmt/pubDate');
     notes.push(...tzNote);
     const contentHtml = item['content:encoded'] ?? '';
     const img = await processImages(contentHtml, slugify(item.title ?? 'wxr') || 'wxr', notes, losses, file);

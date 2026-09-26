@@ -36,6 +36,7 @@ npm run build      # 类型检查 + 产出静态站点到 dist/
 npm run preview    # 本地预览构建产物
 npm run new        # 新建内容：npm run new -- posts "标题" --slug my-post --tags a,b
 npm run import     # 导入内容：npm run import -- <文件或目录> --type posts
+npm run export     # 导出内容：npm run export -- <slug> | --all [--with-drafts]
 ```
 
 > 开发/预览服务器显式绑定 `127.0.0.1`：部分环境下 `localhost` 会被解析为 IPv6（`[::1]`）且浏览器不回退，导致 `ERR_CONNECTION_REFUSED`。访问时请用 `127.0.0.1` 地址。

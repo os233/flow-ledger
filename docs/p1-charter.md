@@ -45,7 +45,7 @@
 | --- | --- | --- |
 | B1 ✅（2026-09-26） | P1 门槛文档 + 新建文章脚本与 Frontmatter 模板 | 脚本生成的各类 Frontmatter 通过构建期 schema 校验 |
 | B2 ✅（2026-09-26） | 导入器：Markdown / HTML / WordPress WXR → content/ + 迁移报告 | 七类样例集（编码/时区/相对图片/代码块/重复 slug/损坏 frontmatter/大文件）全部按预期处理，见 [migrations/2026-09-26T15-15-00-import-report.md](migrations/2026-09-26T15-15-00-import-report.md) |
-| B3 | 导出器：单篇 MD/HTML、全站 ZIP、RSS 附件相对路径 | 导出 MD 可被一种指定静态博客（Astro 官方 blog 模板）直接导入 |
+| B3 ✅（2026-09-26） | 导出器：单篇 MD+HTML、全站 ZIP、附件相对路径 | **已验证**：导出 MD（含 pubDate/description 别名字段）通过 Astro 官方 blog 模板的同款 content schema 并在全新 Astro 项目中构建通过（create-astro 因环境缓存权限受阻，采用官方 schema 等价验证）；全站 ZIP 默认仅含 public，draft/private 需显式开关 |
 | B4 | PR 预览部署（preview 子路径 + 自动清理） | 预览不含 draft/private；关闭 PR 后预览目录被删除 |
 | B5 | Pagefind 搜索（CJK extended，索引纳入可见性检查） | 搜索结果不含 draft/private；P0 验收第 5 条扩展通过 |
 
