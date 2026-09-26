@@ -26,6 +26,9 @@ public/media/   # 图片与附件
 
 推荐 Node.js 24 LTS（CI 与部署使用 Node 24，见计划书第 3 节「版本与运行时基线」；Node 22 亦可，仅使用仍受上游支持的 LTS 版本）。
 
+> PowerShell 用户：首次运行 `npm` 若报「无法加载文件 npm.ps1，因为在此系统上禁止运行脚本」，执行一次
+> `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` 即可（仅当前用户，无需管理员）；或改用 `npm.cmd run ...` / Git Bash。
+
 ```bash
 npm install        # 安装依赖
 npm run dev        # 启动开发服务器 http://localhost:4321
