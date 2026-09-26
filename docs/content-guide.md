@@ -96,7 +96,16 @@ featured: true          # 可选，首页/列表突出显示
 
 ## 快速开始
 
-1. 复制任一现有文件为新文件，按上面模板改 Frontmatter；
+1. 用脚本新建（推荐，自动生成合法 Frontmatter，默认 `status: draft`）：
+
+   ```bash
+   npm run new -- posts "我的新文章" --slug my-post --tags 随笔
+   npm run new -- notes "一个想法"
+   npm run new -- archives "与 Claude 讨论 X" --provider claude
+   npm run new -- projects "项目名" --repo owner/name
+   ```
+
+   也可以复制任一现有文件为新文件，按上面模板手工改 Frontmatter；
 2. 写正文；
-3. `npm run dev` 本地预览；
-4. 提交并推送（Conventional Commits，如 `feat: 新文章 <标题>`），合并到 `main` 后自动发布。
+3. `npm run dev` 本地预览（草稿可见并带「草稿」徽章）；
+4. 确认后把 `status` 改为 `public`，提交并推送（Conventional Commits，如 `feat: 新文章 <标题>`），合并到 `main` 后自动发布。
