@@ -35,6 +35,7 @@ npm run dev        # 启动开发服务器 http://localhost:4321
 npm run build      # 类型检查 + 产出静态站点到 dist/
 npm run preview    # 本地预览构建产物
 npm run new        # 新建内容：npm run new -- posts "标题" --slug my-post --tags a,b
+npm run import     # 导入内容：npm run import -- <文件或目录> --type posts
 ```
 
 刷新 GitHub 项目卡片缓存数据（可选，无需 token，匿名限额每小时 60 次）：

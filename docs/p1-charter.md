@@ -43,11 +43,13 @@
 
 | 批次 | 内容 | 验收锚点 |
 | --- | --- | --- |
-| B1（本次） | P1 门槛文档 + 新建文章脚本与 Frontmatter 模板 | 脚本生成的各类 Frontmatter 通过构建期 schema 校验 |
-| B2 | 导入器：Markdown / HTML / WordPress WXR → content/ + 迁移报告 | 计划书 P1 验收样例集（编码/时区/相对图片/代码块/重复 slug/损坏 Frontmatter/大文件）逐项可追溯 |
+| B1 ✅（2026-09-26） | P1 门槛文档 + 新建文章脚本与 Frontmatter 模板 | 脚本生成的各类 Frontmatter 通过构建期 schema 校验 |
+| B2 ✅（2026-09-26） | 导入器：Markdown / HTML / WordPress WXR → content/ + 迁移报告 | 七类样例集（编码/时区/相对图片/代码块/重复 slug/损坏 frontmatter/大文件）全部按预期处理，见 [migrations/2026-09-26T15-15-00-import-report.md](migrations/2026-09-26T15-15-00-import-report.md) |
 | B3 | 导出器：单篇 MD/HTML、全站 ZIP、RSS 附件相对路径 | 导出 MD 可被一种指定静态博客（Astro 官方 blog 模板）直接导入 |
 | B4 | PR 预览部署（preview 子路径 + 自动清理） | 预览不含 draft/private；关闭 PR 后预览目录被删除 |
 | B5 | Pagefind 搜索（CJK extended，索引纳入可见性检查） | 搜索结果不含 draft/private；P0 验收第 5 条扩展通过 |
+
+**B2 执行要点（实现中确立的策略）**：缺失/内联图片一律替换为正文内的「迁移损失」标记 + 报告记录，**绝不把无法解析的相对路径留在正文中**（会破坏 Astro 构建期的内容资产解析）；WXR 的非文章/已删除项跳过仅记录；导入默认 `draft`。
 
 ## 完成定义（DoD）
 
