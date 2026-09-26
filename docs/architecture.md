@@ -46,6 +46,8 @@ flow-ledger/
 
 每个 `getStaticPaths` 与列表页都必须经过 `isVisible` 过滤。**不得依赖前端隐藏私密内容**（计划书第 4 节）。
 
+**仓库隐私红线**：`private` 的构建期过滤不是访问控制，公开仓库及其 Git 历史可被读取，敏感内容不得提交到公开仓库。
+
 ### 2. 部署 base 与站点地址
 
 GitHub Pages 项目站点部署在 `<owner>.github.io/flow-ledger/` 子路径下：
@@ -63,7 +65,7 @@ GitHub Pages 项目站点部署在 `<owner>.github.io/flow-ledger/` 子路径下
 
 - `content/projects/*.md` 只写 `repo: owner/name` 等人工描述；
 - `scripts/fetch-github-data.mjs` 读出全部 repo 标识，调用 REST API，**合并写入** `src/data/github-cache.json`（失败仓库保留旧值）；
-- 构建期 `ProjectCard` 直接 import 该 JSON——构建不依赖网络，`fetchedAt` 展示数据新鲜度；
+- 构建期 `ProjectCard` 直接 import 该 JSON——构建不依赖网络；
 - `refresh-github-data.yml` 每日 UTC 02:23 刷新并提交，token 仅存在于 Actions 运行时。
 
 ## CI/CD
@@ -78,6 +80,6 @@ GitHub Pages 项目站点部署在 `<owner>.github.io/flow-ledger/` 子路径下
 
 ## 后续阶段的接入点
 
-- **P1**：`scripts/` 下加导入器（MD/HTML/WXR → content/）与导出器；`docs/content-guide.md` 提供新建文章模板；Pagefind 在 build 后挂 `pagefind` 索引步骤。
+- **P1**：`scripts/` 下加导入器（MD/HTML/WXR → content/）与导出器；`docs/content-guide.md` 提供新建文章模板；Pagefind 在 build 后挂 `pagefind` 索引步骤（选用支持中日韩索引的 extended 构建）。
 - **P2**：Cloudflare Worker 独立部署，产出标准 Markdown 落到 `content/archives/`（经 PR 确认），复用 archives schema 的 `sourceUrl/provider/capturedAt/format/originalHash`。
 - **P3**：主题以 npm 包或 GitHub 仓库形式提供令牌与 slot 组件，`theme-manifest.json` 登记元数据；安装走 PR + 许可证扫描 + 构建回归。

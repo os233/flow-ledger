@@ -24,7 +24,7 @@ public/media/   # 图片与附件
 
 ## 本地开发
 
-要求 Node.js ≥ 18.17（推荐 20+）。
+要求 Node.js ≥ 18.17（CI 与部署当前使用 Node 20）。
 
 ```bash
 npm install        # 安装依赖
