@@ -9,6 +9,8 @@
     "check": "astro sync && astro check",
     "build": "astro sync && astro check && astro build",
     "preview": "astro preview",
+    "check:links": "node scripts/check-links.mjs",
+    "check:visibility": "node scripts/check-visibility.mjs",
     "fetch:github": "node scripts/fetch-github-data.mjs"
   },
   "dependencies": {
