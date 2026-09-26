@@ -5,10 +5,10 @@
   "private": true,
   "description": "流水账：先记下、再整理、可长期保存的个人数字花园",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "astro dev --host 127.0.0.1",
     "check": "astro sync && astro check",
     "build": "astro sync && astro check && astro build",
-    "preview": "astro preview",
+    "preview": "astro preview --host 127.0.0.1",
     "check:links": "node scripts/check-links.mjs",
     "check:visibility": "node scripts/check-visibility.mjs",
     "new": "node scripts/new-post.mjs",
