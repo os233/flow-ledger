@@ -26,3 +26,6 @@ pnpm-debug.log*
 # vs code
 .vscode/*
 !.vscode/extensions.json
+
+# ZCode session files
+.zcode/
