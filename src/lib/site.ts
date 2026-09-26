@@ -5,8 +5,8 @@ export const SITE_DESCRIPTION =
   '一个「先记下、再整理、可长期保存」的个人数字花园：灵感速记、AI 对话归档、项目动态与博客。';
 export const OG_IMAGE_PATH = 'og-default.png';
 
-/** TODO: 替换为你的 GitHub 用户名（页脚个人主页链接） */
-export const GITHUB_USERNAME = '';
+/** GitHub 用户名（页脚个人主页链接） */
+export const GITHUB_USERNAME = 'os233';
 export const GITHUB_PROFILE_URL = GITHUB_USERNAME
   ? `https://github.com/${GITHUB_USERNAME}`
   : 'https://github.com/';
