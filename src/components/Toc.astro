@@ -1,0 +1,42 @@
+---
+/**
+ * 文章目录（TOC）。headings 由 Astro 渲染管线自动提供（含 slug）。
+ */
+import { withBase } from '@/lib/site';
+
+export interface TocHeading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: TocHeading[];
+}
+
+const { headings } = Astro.props;
+const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
+---
+
+{
+  items.length > 0 && (
+    <nav class="toc" aria-label="目录">
+      <h2 class="text-sm font-semibold text-ink-2 mb-2">目录</h2>
+      <ul class="space-y-1.5 text-sm border-l border-line">
+        {items.map((h) => (
+          <li style={`padding-left: ${(h.depth - 2) * 0.9 + 0.75}rem`}>
+            <a
+              href={withBase(`${Astro.url.pathname}#${h.slug}`)}
+              class:list={[
+                'block -ml-px border-l-2 border-transparent hover:border-accent hover:text-accent transition-colors',
+                h.depth === 2 ? 'text-ink-2' : 'text-ink-3 text-[0.8rem]',
+              ]}
+            >
+              {h.text}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}

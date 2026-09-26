@@ -1,0 +1,59 @@
+---
+/**
+ * 时间流/列表页通用卡片（P3 主题 slot：Card）。
+ * 展示类型徽章、标题、日期、摘要与标签。
+ */
+import type { FeedEntry } from '@/lib/content';
+import { COLLECTION_LABELS, COLLECTION_PATHS } from '@/lib/content';
+import { formatDate, withBase } from '@/lib/site';
+
+interface Props {
+  entry: FeedEntry;
+  showSummary?: boolean;
+}
+
+const { entry, showSummary = true } = Astro.props;
+const collection = entry.collection as FeedEntry['collection'];
+const href = withBase(`/${COLLECTION_PATHS[collection]}/${entry.id}/`);
+const isDraft = entry.data.status === 'draft';
+---
+
+<article
+  class="rounded-card border border-line bg-raised p-4 sm:p-5 transition-shadow hover:shadow-md"
+>
+  <div class="flex items-center gap-2 text-xs text-ink-3 mb-1.5">
+    <span class="rounded-pill bg-accent-soft text-accent px-2 py-0.5 font-medium">
+      {COLLECTION_LABELS[collection]}
+    </span>
+    {isDraft && (
+      <span class="rounded-pill border border-line px-2 py-0.5 text-[color:var(--color-badge-draft)]">
+        草稿（仅本地可见）
+      </span>
+    )}
+    <time datetime={entry.data.date.toISOString()}>{formatDate(entry.data.date)}</time>
+  </div>
+  <h2 class="text-base sm:text-lg font-semibold leading-snug">
+    <a href={href} class="text-ink hover:text-accent transition-colors">{entry.data.title}</a>
+  </h2>
+  {
+    showSummary && entry.data.summary && (
+      <p class="mt-1.5 text-sm text-ink-2 leading-relaxed line-clamp-2">{entry.data.summary}</p>
+    )
+  }
+  {
+    entry.data.tags.length > 0 && (
+      <ul class="mt-3 flex flex-wrap gap-1.5" aria-label="标签">
+        {entry.data.tags.map((tag) => (
+          <li>
+            <a
+              href={withBase(`/tags/${tag}/`)}
+              class="inline-block rounded-pill bg-muted px-2.5 py-0.5 text-xs text-ink-2 hover:text-accent transition-colors"
+            >
+              #{tag}
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</article>

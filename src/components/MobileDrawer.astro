@@ -1,0 +1,102 @@
+---
+import { withBase } from '@/lib/site';
+
+const links = [
+  { href: withBase('/'), label: '首页' },
+  { href: withBase('/notes/'), label: '灵感' },
+  { href: withBase('/archives/'), label: '归档' },
+  { href: withBase('/projects/'), label: '项目' },
+  { href: withBase('/posts/'), label: '博客' },
+  { href: withBase('/about/'), label: '关于' },
+];
+---
+
+<div
+  id="mobile-drawer"
+  class="fixed inset-0 z-50 hidden md:hidden"
+  role="dialog"
+  aria-modal="true"
+  aria-label="移动端导航菜单"
+>
+  <div id="drawer-backdrop" class="absolute inset-0 bg-black/50"></div>
+  <nav
+    id="drawer-panel"
+    class="absolute right-0 top-0 flex h-full w-64 max-w-[80vw] flex-col border-l border-line bg-raised p-4 shadow-xl"
+    aria-label="移动端导航"
+  >
+    <div class="flex items-center justify-between mb-4">
+      <span class="text-sm font-medium text-ink-3">导航</span>
+      <button
+        id="menu-close"
+        type="button"
+        class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line text-ink-2"
+        aria-label="关闭菜单"
+      >
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </button>
+    </div>
+    <ul class="flex flex-col gap-1">
+      {links.map((l) => (
+        <li>
+          <a
+            href={l.href}
+            class="block rounded-card px-3 py-2.5 text-ink hover:bg-muted hover:text-accent transition-colors"
+          >
+            {l.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</div>
+
+<script>
+  // 无障碍抽屉：打开时焦点移入、Esc / 点击遮罩关闭、Tab 循环限制在抽屉内
+  const drawer = document.getElementById('mobile-drawer');
+  const openBtn = document.getElementById('menu-open');
+  const closeBtn = document.getElementById('menu-close');
+  const backdrop = document.getElementById('drawer-backdrop');
+  const panel = document.getElementById('drawer-panel');
+
+  function openDrawer() {
+    if (!drawer) return;
+    drawer.classList.remove('hidden');
+    openBtn?.setAttribute('aria-expanded', 'true');
+    (closeBtn ?? panel?.querySelector('a'))?.focus();
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeDrawer() {
+    if (!drawer) return;
+    drawer.classList.add('hidden');
+    openBtn?.setAttribute('aria-expanded', 'false');
+    openBtn?.focus();
+    document.body.style.overflow = '';
+  }
+
+  openBtn?.addEventListener('click', openDrawer);
+  closeBtn?.addEventListener('click', closeDrawer);
+  backdrop?.addEventListener('click', closeDrawer);
+
+  drawer?.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeDrawer();
+      return;
+    }
+    if (e.key === 'Tab' && panel) {
+      const focusables = panel.querySelectorAll<HTMLElement>('a[href], button');
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+</script>

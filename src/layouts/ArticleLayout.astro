@@ -1,0 +1,112 @@
+---
+/**
+ * 详情页布局（P3 主题 slot：Article）：文章头、目录、正文、归档元信息。
+ */
+import BaseLayout from './BaseLayout.astro';
+import Toc from '@/components/Toc.astro';
+import { render, type CollectionEntry } from 'astro:content';
+import type { FeedEntry } from '@/lib/content';
+import { COLLECTION_LABELS, COLLECTION_PATHS } from '@/lib/content';
+import { formatDate, withBase } from '@/lib/site';
+
+interface Props {
+  entry: FeedEntry;
+  /** AI 归档等来源信息 */
+  source?: { url: string; provider: string; capturedAt?: Date; format?: string };
+}
+
+const { entry, source } = Astro.props;
+const { Content, headings } = await render(entry as CollectionEntry<'notes'>);
+const collection = entry.collection as FeedEntry['collection'];
+const backHref = withBase(`/${COLLECTION_PATHS[collection]}/`);
+const isDraft = entry.data.status === 'draft';
+const hasToc = headings.some((h) => h.depth >= 2 && h.depth <= 3);
+---
+
+<BaseLayout
+  title={entry.data.title}
+  description={entry.data.summary}
+  ogType="article"
+  publishedTime={entry.data.date}
+>
+  <article class="mx-auto w-full max-w-5xl px-4 sm:px-6 py-8">
+    <a
+      href={backHref}
+      class="inline-flex items-center gap-1 text-sm text-ink-3 hover:text-accent transition-colors"
+      >← 返回{COLLECTION_LABELS[collection]}</a
+    >
+
+    <header class="mt-4 mb-8 border-b border-line pb-6">
+      <h1 class="text-2xl sm:text-3xl font-bold leading-tight text-ink">{entry.data.title}</h1>
+      <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-ink-3">
+        <time datetime={entry.data.date.toISOString()}>发布于 {formatDate(entry.data.date)}</time>
+        {
+          entry.data.updated && (
+            <time datetime={entry.data.updated.toISOString()}>
+              更新于 {formatDate(entry.data.updated)}
+            </time>
+          )
+        }
+        {
+          isDraft && (
+            <span class="rounded-pill border border-line px-2 py-0.5 text-xs text-[color:var(--color-badge-draft)]">
+              草稿（仅本地可见）
+            </span>
+          )
+        }
+        {
+          source && (
+            <a
+              href={source.url}
+              class="text-link hover:underline"
+              rel="noopener noreferrer"
+            >
+              来源：{source.provider} ↗
+            </a>
+          )
+        }
+      </div>
+      {
+        source?.capturedAt && (
+          <p class="mt-1.5 text-xs text-ink-3">
+            抓取于 {formatDate(source.capturedAt)}
+            {source.format && ` · 保存格式：${source.format}`}
+          </p>
+        )
+      }
+      {
+        entry.data.tags.length > 0 && (
+          <ul class="mt-3 flex flex-wrap gap-1.5" aria-label="标签">
+            {entry.data.tags.map((tag) => (
+              <li>
+                <a
+                  href={withBase(`/tags/${tag}/`)}
+                  class="inline-block rounded-pill bg-muted px-2.5 py-0.5 text-xs text-ink-2 hover:text-accent transition-colors"
+                >
+                  #{tag}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </header>
+
+    <slot name="source" />
+
+    <div class:list={['flex gap-10', hasToc ? 'flex-col lg:flex-row' : 'flex-col']}>
+      <div class="min-w-0 flex-1">
+        <div class="prose-flow">
+          <Content />
+        </div>
+      </div>
+      {
+        hasToc && (
+          <aside class="lg:w-56 lg:shrink-0 lg:sticky lg:self-start" style="top: calc(var(--header-height) + 1rem)">
+            <Toc headings={headings} />
+          </aside>
+        )
+      }
+    </div>
+  </article>
+</BaseLayout>

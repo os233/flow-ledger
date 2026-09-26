@@ -1,0 +1,231 @@
+@import 'tailwindcss';
+
+/*
+ * 设计令牌（《流水账开发计划书》P3：主题=令牌集）
+ * 所有主题相关的颜色 / 字体 / 圆角都在这里定义为 CSS 变量；
+ * 未来主题市场只需替换令牌集，不改组件与页面。
+ */
+
+:root {
+  /* 色板 */
+  --color-bg: #fafaf9;
+  --color-bg-raised: #ffffff;
+  --color-bg-muted: #f1f0ee;
+  --color-border: #e2e1de;
+  --color-text: #1c1917;
+  --color-text-secondary: #57534e;
+  --color-text-tertiary: #a8a29e;
+  --color-accent: #2563eb;
+  --color-accent-soft: #dbeafe;
+  --color-link: #1d4ed8;
+  --color-code-bg: #f5f5f4;
+  --color-badge-private: #b91c1c;
+  --color-badge-draft: #a16207;
+
+  /* 字体 */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  --font-mono: ui-monospace, 'Cascadia Code', 'JetBrains Mono', Consolas,
+    'Courier New', monospace;
+
+  /* 圆角 */
+  --radius-card: 0.75rem;
+  --radius-pill: 999px;
+
+  /* 布局 */
+  --content-max-width: 48rem;
+  --header-height: 3.5rem;
+}
+
+.dark {
+  --color-bg: #0c0a09;
+  --color-bg-raised: #1c1917;
+  --color-bg-muted: #292524;
+  --color-border: #3f3c39;
+  --color-text: #e7e5e4;
+  --color-text-secondary: #a8a29e;
+  --color-text-tertiary: #78716c;
+  --color-accent: #60a5fa;
+  --color-accent-soft: #1e3a5f;
+  --color-link: #93c5fd;
+  --color-code-bg: #292524;
+  --color-badge-private: #f87171;
+  --color-badge-draft: #facc15;
+}
+
+@theme inline {
+  --color-bg: var(--color-bg);
+  --color-raised: var(--color-bg-raised);
+  --color-muted: var(--color-bg-muted);
+  --color-line: var(--color-border);
+  --color-ink: var(--color-text);
+  --color-ink-2: var(--color-text-secondary);
+  --color-ink-3: var(--color-text-tertiary);
+  --color-accent: var(--color-accent);
+  --color-accent-soft: var(--color-accent-soft);
+  --color-link: var(--color-link);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-card: var(--radius-card);
+  --radius-pill: var(--radius-pill);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 无障碍键盘操作：可见的聚焦环 */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* 跳转链接：仅键盘聚焦时显示 */
+.skip-link {
+  position: absolute;
+  left: 0;
+  top: calc(var(--header-height) * 0);
+  transform: translateY(-120%);
+  z-index: 60;
+  background: var(--color-bg-raised);
+  color: var(--color-text);
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-card) 0;
+  transition: transform 0.15s ease;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* 正文排版（Markdown 渲染区） */
+.prose-flow {
+  line-height: 1.8;
+  color: var(--color-text);
+  overflow-wrap: break-word;
+}
+.prose-flow h1,
+.prose-flow h2,
+.prose-flow h3,
+.prose-flow h4 {
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 2em 0 0.75em;
+  scroll-margin-top: calc(var(--header-height) + 1rem);
+}
+.prose-flow h1 { font-size: 1.75rem; }
+.prose-flow h2 { font-size: 1.45rem; }
+.prose-flow h3 { font-size: 1.2rem; }
+.prose-flow h4 { font-size: 1.05rem; }
+.prose-flow p { margin: 1em 0; }
+.prose-flow a {
+  color: var(--color-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose-flow ul,
+.prose-flow ol {
+  margin: 1em 0;
+  padding-left: 1.5em;
+}
+.prose-flow ul { list-style: disc; }
+.prose-flow ol { list-style: decimal; }
+.prose-flow li { margin: 0.4em 0; }
+.prose-flow blockquote {
+  margin: 1.25em 0;
+  padding: 0.35em 1.1em;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-bg-muted);
+  border-radius: 0 var(--radius-card) var(--radius-card) 0;
+  color: var(--color-text-secondary);
+}
+.prose-flow blockquote p { margin: 0.5em 0; }
+.prose-flow code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--color-code-bg);
+  padding: 0.15em 0.4em;
+  border-radius: 0.3em;
+}
+.prose-flow pre {
+  margin: 1.5em 0;
+  padding: 1rem 1.25rem;
+  background: var(--color-code-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+.prose-flow pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+.prose-flow table {
+  width: 100%;
+  margin: 1.5em 0;
+  border-collapse: collapse;
+  font-size: 0.925rem;
+  display: block;
+  overflow-x: auto;
+}
+.prose-flow th,
+.prose-flow td {
+  border: 1px solid var(--color-border);
+  padding: 0.5em 0.9em;
+  text-align: left;
+}
+.prose-flow th {
+  background: var(--color-bg-muted);
+  font-weight: 600;
+}
+.prose-flow img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-card);
+}
+.prose-flow hr {
+  margin: 2.5em 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+.prose-flow h2::before,
+.prose-flow h3::before {
+  content: '# ';
+  color: var(--color-accent);
+  font-weight: 400;
+  opacity: 0.55;
+}
+
+/* Shiki 双主题：默认亮色，.dark 下切换暗色令牌 */
+.astro-code,
+.astro-code span {
+  color: var(--shiki-light) !important;
+  background-color: var(--shiki-light-bg) !important;
+  font-style: var(--shiki-light-font-style) !important;
+  font-weight: var(--shiki-light-font-weight) !important;
+}
+.dark .astro-code,
+.dark .astro-code span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,109 @@
+---
+/**
+ * GitHub 项目卡片（P0）：简介、链接、Stars、Forks、语言、最近更新。
+ * 实时数据来自 scripts/fetch-github-data.mjs 刷新的构建期缓存；
+ * 缓存缺失或 API 失败时回退到 Frontmatter 提供的信息。
+ */
+import cache from '@/data/github-cache.json';
+import type { CollectionEntry } from 'astro:content';
+import { formatDate, formatStars, relativeDays, withBase } from '@/lib/site';
+
+interface RepoData {
+  description?: string;
+  stars?: number;
+  forks?: number;
+  language?: string;
+  pushedAt?: string;
+  htmlUrl?: string;
+}
+
+type ProjectEntry = CollectionEntry<'projects'>;
+
+interface Props {
+  entry: ProjectEntry;
+}
+
+const { entry } = Astro.props;
+const { repo, homepage, featured } = entry.data;
+const cached = (cache.repos as Record<string, RepoData | undefined>)[repo];
+const repoUrl = cached?.htmlUrl ?? `https://github.com/${repo}`;
+const description = entry.data.summary ?? cached?.description ?? '暂无简介';
+---
+
+<article
+  class:list={[
+    'rounded-card border bg-raised p-4 sm:p-5 transition-shadow hover:shadow-md',
+    featured ? 'border-accent' : 'border-line',
+  ]}
+  aria-label={`项目：${entry.data.title}`}
+>
+  <div class="flex items-start justify-between gap-3">
+    <h2 class="text-base sm:text-lg font-semibold leading-snug">
+      <a
+        href={withBase(`/projects/${entry.id}/`)}
+        class="text-ink hover:text-accent transition-colors"
+      >
+        {entry.data.title}
+      </a>
+    </h2>
+    <a
+      href={repoUrl}
+      class="shrink-0 rounded-pill border border-line px-2.5 py-1 text-xs text-ink-2 hover:text-accent hover:border-accent transition-colors"
+      rel="noopener noreferrer"
+      aria-label={`在 GitHub 上查看 ${repo}`}
+    >
+      {repo}
+    </a>
+  </div>
+
+  <p class="mt-2 text-sm text-ink-2 leading-relaxed">{description}</p>
+
+  <dl class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-3">
+    {
+      typeof cached?.language === 'string' && (
+        <div class="flex items-center gap-1">
+          <span class="h-2.5 w-2.5 rounded-full bg-accent" aria-hidden="true" />
+          <dt class="sr-only">语言</dt>
+          <dd>{cached.language}</dd>
+        </div>
+      )
+    }
+    {
+      typeof cached?.stars === 'number' && (
+        <div class="flex items-center gap-1">
+          <dt class="sr-only">Stars</dt>
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+          <dd>{formatStars(cached.stars)}</dd>
+        </div>
+      )
+    }
+    {
+      typeof cached?.forks === 'number' && (
+        <div class="flex items-center gap-1">
+          <dt class="sr-only">Forks</dt>
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="6" cy="6" r="3" />
+            <circle cx="18" cy="6" r="3" />
+            <circle cx="12" cy="18" r="3" />
+            <path d="M6 9v1a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V9M12 14v1" />
+          </svg>
+          <dd>{formatStars(cached.forks)}</dd>
+        </div>
+      )
+    }
+    {
+      cached?.pushedAt && (
+        <div>
+          <dt class="sr-only">最近更新</dt>
+          <dd>
+            更新于 {relativeDays(new Date(cached.pushedAt))}
+            <span class="sr-only">（{formatDate(new Date(cached.pushedAt))}）</span>
+          </dd>
+        </div>
+      )
+    }
+    {homepage && <a href={homepage} class="text-link hover:underline" rel="noopener noreferrer">主页 ↗</a>}
+  </dl>
+</article>

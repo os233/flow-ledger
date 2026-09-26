@@ -1,0 +1,35 @@
+---
+import { SITE_TITLE, withBase } from '@/lib/site';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-line mt-16">
+  <div
+    class="mx-auto max-w-5xl px-4 sm:px-6 py-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-sm text-ink-3"
+  >
+    <p>
+      © {year} {SITE_TITLE} · 内容
+      <a
+        href="https://creativecommons.org/licenses/by/4.0/deed.zh"
+        class="underline underline-offset-2 hover:text-ink"
+        rel="license"
+        >CC BY 4.0</a
+      > · 代码
+      <a
+        href={withBase('/')}
+        class="underline underline-offset-2 hover:text-ink"
+        >MIT</a
+      >
+    </p>
+    <div class="flex items-center gap-4">
+      <a href={withBase('/rss.xml')} class="hover:text-ink transition-colors">RSS</a>
+      <a
+        href="https://github.com/"
+        class="hover:text-ink transition-colors"
+        rel="me"
+        >GitHub</a
+      >
+    </div>
+  </div>
+</footer>
