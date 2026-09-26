@@ -1,0 +1,31 @@
+---
+title: 用 MDX 在文章里嵌入组件
+date: 2026-09-12
+tags: [博客, MDX, Astro]
+status: public
+summary: MDX 让 Markdown 获得组件能力：这篇文章演示 .mdx 文件与代码高亮、目录的配合。
+---
+
+## 什么是 MDX
+
+MDX = Markdown + JSX。`.mdx` 文件里既可以正常写 Markdown，也可以导入 Astro 组件在文中渲染。
+
+## 什么时候用 MDX
+
+- 需要在文章中嵌入交互组件（图表、演示框）
+- 需要复用自定义的排版结构
+
+## 什么时候不用
+
+纯文字内容坚持用 `.md`，保持最大的可迁移性——导出到任何静态博客都能直接使用。
+
+```md
+---
+title: 普通 Markdown 文章
+status: public
+---
+
+正文保持纯 Markdown，迁移成本最低。
+```
+
+本站的策略：**默认 `.md`，确有组件需求才升级为 `.mdx`**。

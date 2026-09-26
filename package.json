@@ -1,0 +1,31 @@
+{
+  "name": "flow-ledger",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "流水账：先记下、再整理、可长期保存的个人数字花园",
+  "scripts": {
+    "dev": "astro dev",
+    "check": "astro sync && astro check",
+    "build": "astro sync && astro check && astro build",
+    "preview": "astro preview",
+    "fetch:github": "node scripts/fetch-github-data.mjs"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^4.3.0",
+    "@astrojs/rss": "^4.0.12",
+    "@astrojs/sitemap": "^3.4.1",
+    "@tailwindcss/vite": "^4.1.11",
+    "astro": "^5.12.0",
+    "tailwindcss": "^4.1.11"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "typescript": "^5.8.3"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.27.7": true,
+    "sharp@0.34.5": true
+  }
+}
