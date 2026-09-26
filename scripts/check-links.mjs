@@ -8,7 +8,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DIST = path.join(ROOT, 'dist');
+// 默认检查 dist/；PR 预览工作流通过 DIST_DIR 指向合并后的产物目录
+const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, 'dist');
+// 部署 base（与 astro.config 的 BASE_PATH 同源，逗号分隔支持多层，如合并预览产物）
+const BASES = (process.env.BASE_PATHS ?? process.env.BASE_PATH ?? '/flow-ledger')
+  .split(',')
+  .map((b) => b.trim().replace(/\/$/, ''))
+  .filter(Boolean);
 
 async function* walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
@@ -20,10 +26,22 @@ async function* walk(dir) {
 
 function resolveTarget(fromHtml, href) {
   const [withoutHash] = href.split('#');
-  const [withoutQuery] = withoutHash.split('?');
+  const withoutQuery = withoutHash.split('?')[0];
   if (withoutQuery === '') return null; // 纯锚点
-  const base = path.dirname(fromHtml);
-  const target = path.resolve(base, decodeURIComponent(withoutQuery));
+
+  if (withoutQuery.startsWith('/')) {
+    // 站内绝对路径：剥离部署 base 前缀后映射到产物根
+    // （项目 Pages 的产物根对应 /flow-ledger/，因此 href 需先去掉 base 再定位文件）
+    let rel = withoutQuery;
+    for (const b of BASES) {
+      if (withoutQuery === b || withoutQuery.startsWith(b + '/')) {
+        rel = withoutQuery.slice(b.length) || '/';
+        break;
+      }
+    }
+    return path.join(DIST, decodeURIComponent(rel));
+  }
+  const target = path.resolve(path.dirname(fromHtml), decodeURIComponent(withoutQuery));
   const rel = path.relative(DIST, target);
   if (rel.startsWith('..')) return null; // 越出 dist 的路径不做判断
   return target;

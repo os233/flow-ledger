@@ -11,7 +11,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DIST = path.join(ROOT, 'dist');
+// 默认检查 dist/；PR 预览工作流通过 DIST_DIR 指向合并后的产物目录
+const DIST = process.env.DIST_DIR ? path.resolve(process.env.DIST_DIR) : path.join(ROOT, 'dist');
 
 const PRIVATE_SLUG = '2026-09-20-private-idea';
 const DRAFT_SLUG = '2026-09-22-draft-fixture';

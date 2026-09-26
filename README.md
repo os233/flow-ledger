@@ -59,6 +59,7 @@ npm run fetch:github
 | --- | --- | --- |
 | CI | push / PR | 类型检查、构建、内部链接与内容可见性检查 |
 | Deploy | push main | 构建并部署到 GitHub Pages |
+| PR Preview | PR 打开/更新/关闭 | 预览部署到 `preview/pr-<编号>/` 子路径并评论链接；关闭时自动清理 |
 | Refresh GitHub data | 每日定时 | 刷新项目卡片的 Stars/Forks 等缓存数据 |
 
 ## 备份与恢复

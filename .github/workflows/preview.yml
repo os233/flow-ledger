@@ -1,0 +1,131 @@
+# PR 预览部署（计划书 P1-B4）
+#
+# 模型：GitHub Pages 为单部署（每次部署替换全站），因此每次预览部署 =
+#   「origin/main 全量构建（底层） + 本 PR 构建（preview/pr-<编号>/ 覆盖层）」合并后的原子部署。
+# 已知限制：并发多个 PR 时，仅最近一次部署所带的预览目录存在；其余 PR 重新同步即可恢复。
+# 清理：PR 关闭（无论是否合并）→ 重新部署 main，预览目录随之消失。
+# 安全：仅同仓库分支的 PR 才触发部署（fork PR 不部署）。
+# 隐私：预览构建为生产模式，draft/private 与主站同样被构建期过滤，预览只含 public 内容。
+name: PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+  pull-requests: write # 评论预览链接
+
+concurrency:
+  group: pages # 与 Deploy 共用，所有站点部署串行化
+  cancel-in-progress: false
+
+jobs:
+  preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      SITE: https://${{ github.repository_owner }}.github.io
+      MAIN_BASE: /${{ github.event.repository.name }}
+      PREVIEW_BASE: /${{ github.event.repository.name }}/preview/pr-${{ github.event.number }}
+    steps:
+      - name: Checkout (PR merge commit)
+        if: github.event.action != 'closed'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Checkout (main — closed 清理部署)
+        if: github.event.action == 'closed'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build PR preview (overlay layer)
+        if: github.event.action != 'closed'
+        env:
+          BASE_PATH: ${{ env.PREVIEW_BASE }}
+        run: |
+          npm run build
+          node scripts/check-links.mjs
+          node scripts/check-visibility.mjs
+          mv dist preview-dist
+
+      - name: Checkout main source (base layer)
+        if: github.event.action != 'closed'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          path: main-src
+
+      - name: Build main site (base layer)
+        if: github.event.action != 'closed'
+        env:
+          BASE_PATH: ${{ env.MAIN_BASE }}
+        run: |
+          npm ci --prefix main-src
+          cd main-src
+          npm run build
+          # main-src 是完整 checkout，检查脚本以其自身为 ROOT
+          node scripts/check-links.mjs
+          node scripts/check-visibility.mjs
+          mv dist ../main-dist
+
+      - name: Merge artifact (main + preview overlay)
+        if: github.event.action != 'closed'
+        # artifact 根对应 /flow-ledger/（项目站点），预览覆盖层在 artifact/preview/pr-<n>/
+        run: |
+          mkdir -p artifact/preview/pr-${{ github.event.number }}
+          cp -r main-dist/* artifact/
+          cp -r preview-dist/* artifact/preview/pr-${{ github.event.number }}/
+
+      # 关闭事件：只部署 main（构建产物即 main-dist），预览目录随之消失
+      - name: Prepare artifact (closed cleanup)
+        if: github.event.action == 'closed'
+        run: mv dist artifact
+
+      - name: Check merged artifact (preview deploys only)
+        if: github.event.action != 'closed'
+        env:
+          DIST_DIR: ${{ github.workspace }}/artifact
+        run: |
+          node scripts/check-links.mjs
+          node scripts/check-visibility.mjs
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: artifact
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+      - name: Report preview URL on PR
+        if: github.event.action != 'closed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ env.SITE }}${{ env.PREVIEW_BASE }}/
+        run: |
+          gh pr comment ${{ github.event.number }} --edit-last --create-if-none --body \
+            "🔬 **PR 预览已部署**：$URL
+
+            - 范围：仅 public 内容（draft/private 与主站同样被过滤）
+            - 更新：推送新提交后自动重新部署
+            - 清理：PR 关闭后自动删除" || echo "评论失败（不影响部署）"
+
+      - name: Report cleanup on PR
+        if: github.event.action == 'closed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr comment ${{ github.event.number }} --edit-last --create-if-none --body \
+            "🧹 **PR 预览已清理**（已重新部署 main，预览目录已移除）" || echo "评论失败（不影响清理）"
