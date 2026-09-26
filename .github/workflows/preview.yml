@@ -88,7 +88,14 @@ jobs:
           cp -r main-dist/* artifact/
           cp -r preview-dist/* artifact/preview/pr-${{ github.event.number }}/
 
-      # 关闭事件：只部署 main（构建产物即 main-dist），预览目录随之消失
+      # 关闭事件：重新构建并部署 main（无预览目录），预览随之消失
+      - name: Build main site (closed cleanup deploy)
+        if: github.event.action == 'closed'
+        run: |
+          npm run build
+          node scripts/check-links.mjs
+          node scripts/check-visibility.mjs
+
       - name: Prepare artifact (closed cleanup)
         if: github.event.action == 'closed'
         run: mv dist artifact
