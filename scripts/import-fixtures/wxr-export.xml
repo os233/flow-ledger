@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0" xmlns:wp="http://wordpress.org/export/1.2/">
+<channel>
+  <item>
+    <title>WordPress 迁移文章</title>
+    <link>https://old-blog.example.com/wp-post</link>
+    <pubDate>Mon, 15 Sep 2025 10:00:00 +0000</pubDate>
+    <category><![CDATA[WP分类]]></category>
+    <category><![CDATA[迁移]]></category>
+    <wp:post_type>post</wp:post_type>
+    <wp:status>publish</wp:status>
+    <content:encoded><![CDATA[<p>来自 WordPress 的正文，含一个 <strong>加粗</strong> 与一张相对图片。</p><img src="uploads/2025/09/wp-img.png"><p>以及一个 <iframe src="https://example.com/embed"></iframe> 应记为损失。</p>]]></content:encoded>
+  </item>
+  <item>
+    <title>已删除的草稿页</title>
+    <wp:post_type>page</wp:post_type>
+    <wp:status>trash</wp:status>
+    <content:encoded><![CDATA[<p>不该被导入。</p>]]></content:encoded>
+  </item>
+</channel></rss>

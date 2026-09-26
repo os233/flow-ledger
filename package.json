@@ -12,6 +12,7 @@
     "check:links": "node scripts/check-links.mjs",
     "check:visibility": "node scripts/check-visibility.mjs",
     "new": "node scripts/new-post.mjs",
+    "import": "node scripts/import.mjs",
     "fetch:github": "node scripts/fetch-github-data.mjs"
   },
   "dependencies": {
@@ -24,6 +25,9 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
+    "fast-xml-parser": "^5.11.1",
+    "iconv-lite": "^0.7.3",
+    "turndown": "^7.2.4",
     "typescript": "^5.8.3"
   },
   "allowScripts": {
