@@ -15,9 +15,10 @@ export default defineConfig({
   integrations: [mdx(), sitemap()],
   markdown: {
     shikiConfig: {
+      // high-contrast 变体：注释等低强调 token 也能满足 WCAG AA 对比度
       themes: {
-        light: 'github-light',
-        dark: 'github-dark',
+        light: 'github-light-high-contrast',
+        dark: 'github-dark-high-contrast',
       },
       wrap: true,
     },

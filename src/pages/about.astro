@@ -17,27 +17,27 @@ const { Content } = about ? await render(about) : { Content: null };
       <div class="min-w-0 flex-1 prose-flow">
         {Content && <Content />}
       </div>
-      {
-        headings.length > 0 && (
-          <aside class="lg:w-56 lg:shrink-0 lg:sticky lg:self-start" style="top: calc(var(--header-height) + 1rem)">
-            <nav aria-label="目录">
-              <h2 class="text-sm font-semibold text-ink-2 mb-2">目录</h2>
-              <ul class="space-y-1.5 text-sm border-l border-line">
-                {headings.filter((h) => h.depth === 2).map((h) => (
-                  <li>
-                    <a
-                      href={`#${h.slug}`}
-                      class="block -ml-px border-l-2 border-transparent pl-3 hover:border-accent hover:text-accent transition-colors text-ink-2"
-                    >
-                      {h.text}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </aside>
-        )
-      }
+        {
+          headings.length > 0 && (
+            <div class="lg:w-56 lg:shrink-0 lg:sticky lg:self-start" style="top: calc(var(--header-height) + 1rem)">
+              <nav aria-label="目录">
+                <h2 class="text-sm font-semibold text-ink-2 mb-2">目录</h2>
+                <ul class="space-y-1.5 text-sm border-l border-line">
+                  {headings.filter((h) => h.depth === 2).map((h) => (
+                    <li>
+                      <a
+                        href={`#${h.slug}`}
+                        class="block -ml-px border-l-2 border-transparent pl-3 hover:border-accent hover:text-accent transition-colors text-ink-2"
+                      >
+                        {h.text}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </div>
+          )
+        }
     </div>
   </div>
 </BaseLayout>

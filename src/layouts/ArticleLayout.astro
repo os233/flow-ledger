@@ -102,9 +102,9 @@ const hasToc = headings.some((h) => h.depth >= 2 && h.depth <= 3);
       </div>
       {
         hasToc && (
-          <aside class="lg:w-56 lg:shrink-0 lg:sticky lg:self-start" style="top: calc(var(--header-height) + 1rem)">
+          <div class="lg:w-56 lg:shrink-0 lg:sticky lg:self-start" style="top: calc(var(--header-height) + 1rem)">
             <Toc headings={headings} />
-          </aside>
+          </div>
         )
       }
     </div>

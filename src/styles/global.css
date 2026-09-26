@@ -14,7 +14,7 @@
   --color-border: #e2e1de;
   --color-text: #1c1917;
   --color-text-secondary: #57534e;
-  --color-text-tertiary: #a8a29e;
+  --color-text-tertiary: #78716c; /* 对 #fafaf9 ≈ 4.65:1，满足 WCAG AA */
   --color-accent: #2563eb;
   --color-accent-soft: #dbeafe;
   --color-link: #1d4ed8;
@@ -44,7 +44,7 @@
   --color-border: #3f3c39;
   --color-text: #e7e5e4;
   --color-text-secondary: #a8a29e;
-  --color-text-tertiary: #78716c;
+  --color-text-tertiary: #a8a29e; /* 对 #0c0a09 ≈ 7.9:1，满足 WCAG AA */
   --color-accent: #60a5fa;
   --color-accent-soft: #1e3a5f;
   --color-link: #93c5fd;
