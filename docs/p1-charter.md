@@ -46,7 +46,7 @@
 | B1 ✅（2026-09-26） | P1 门槛文档 + 新建文章脚本与 Frontmatter 模板 | 脚本生成的各类 Frontmatter 通过构建期 schema 校验 |
 | B2 ✅（2026-09-26） | 导入器：Markdown / HTML / WordPress WXR → content/ + 迁移报告 | 七类样例集（编码/时区/相对图片/代码块/重复 slug/损坏 frontmatter/大文件）全部按预期处理，见 [migrations/2026-09-26T15-15-00-import-report.md](migrations/2026-09-26T15-15-00-import-report.md) |
 | B3 ✅（2026-09-26） | 导出器：单篇 MD+HTML、全站 ZIP、附件相对路径 | **已验证**：导出 MD（含 pubDate/description 别名字段）通过 Astro 官方 blog 模板的同款 content schema 并在全新 Astro 项目中构建通过（create-astro 因环境缓存权限受阻，采用官方 schema 等价验证）；全站 ZIP 默认仅含 public，draft/private 需显式开关 |
-| B4 ✅ 实现（2026-09-27，待 PR 实跑验证） | PR 预览部署（preview/pr-<n>/ 子路径 + 自动清理） | 已实现 `preview.yml` 并通过本地双层构建合并模拟（58 页/84 链接/可见性全绿）；预览只含 public；关闭 PR 自动重新部署 main。**已知限制**：Pages 单部署模型，并发多 PR 时仅保留最近部署的预览；fork PR 不部署预览。验收闭合需开一个真实 PR 观察 Actions 实跑 |
+| B4 ✅（2026-09-27，线上验收通过） | PR 预览部署（preview/pr-<n>/ 子路径 + 自动清理） | 实 PR 实跑：预览链接评论、预览内容、主站无恙、隐私抽查全部通过；关闭清理首次失败（漏构建步骤）已修复并复验。已知限制：Pages 单部署模型，并发多 PR 时仅保留最近部署的预览；fork PR 不部署预览 |
 | B5 | Pagefind 搜索（CJK extended，索引纳入可见性检查） | 搜索结果不含 draft/private；P0 验收第 5 条扩展通过 |
 
 **B2 执行要点（实现中确立的策略）**：缺失/内联图片一律替换为正文内的「迁移损失」标记 + 报告记录，**绝不把无法解析的相对路径留在正文中**（会破坏 Astro 构建期的内容资产解析）；WXR 的非文章/已删除项跳过仅记录；导入默认 `draft`。
