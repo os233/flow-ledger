@@ -29,7 +29,8 @@ const archives = defineCollection({
   schema: baseSchema.extend({
     sourceUrl: z.string().url(),
     provider: z.string().min(1),
-    capturedAt: z.coerce.date().default(new Date()),
+    // 缺省按缺失处理（展示层条件渲染）；不用构建时刻兜底，避免「抓取于」变成「构建于」
+    capturedAt: z.coerce.date().optional(),
     format: z.enum(['markdown', 'html', 'json']).default('markdown'),
     originalHash: z.string().optional(),
   }),

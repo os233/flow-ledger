@@ -28,7 +28,8 @@ export const GET: APIRoute = async (context) => {
   return rss({
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
-    site: context.site ?? 'https://example.github.io',
+    // context.site 不含部署 base，频道级 <link> 需显式拼接，否则订阅器里的站点链接落到域名根路径
+    site: new URL(withBase('/'), context.site ?? 'https://example.github.io'),
     items,
     customData: '<language>zh-CN</language>',
   });

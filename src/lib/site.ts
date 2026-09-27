@@ -26,11 +26,11 @@ export function canonicalUrl(pathname: string, site: URL | undefined): string {
   return new URL(pathname, site ?? 'https://example.github.io').toString();
 }
 
-/** 2026-09-26 形式的日期显示 */
+/** 2026-09-26 形式的日期显示（内容日期按 UTC 解析，取值也用 UTC 保持一致，避免负偏移时区提前一天） */
 export function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
+  const y = date.getUTCFullYear();
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
