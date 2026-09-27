@@ -16,7 +16,7 @@ const path = Astro.url.pathname;
 // 归一化后再比较，两种模式高亮行为一致
 const norm = (p: string) => (p.length > 1 ? p.replace(/\/+$/, '') : p);
 const isActive = (href: string) =>
-  href === withBase('/') ? path === norm(withBase('/')) : path.startsWith(norm(href));
+  href === withBase('/') ? norm(path) === norm(withBase('/')) : path.startsWith(norm(href));
 
 /** Header / Feed / Card / Article / Footer：与 P3 主题 slot 命名对齐 */
 const nav = links.map((l) => ({ ...l, active: isActive(l.href) }));---

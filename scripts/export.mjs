@@ -53,6 +53,8 @@ async function collectEntries() {
       continue;
     }
     for (const full of files) {
+      // id 先于解析告警使用，必须在前声明（Astro glob loader 语义：相对集合目录路径去扩展名）
+      const id = path.relative(dir, full).replace(/\\/g, '/').replace(/\.(md|mdx)$/i, '');
       const { text } = await readDecoded(full);
       const split = splitFrontmatter(text);
       const parsed = split.frontmatter !== null ? parseSimpleFrontmatter(split.frontmatter) : { data: {}, broken: false };
@@ -63,8 +65,6 @@ async function collectEntries() {
       // 可见性与构建期语义对齐：frontmatter 解析失败或其余集合缺 status 的条目
       // 不得默认按 public 导出（Zod schema 默认为 draft）；pages 无 status 概念，恒为 public
       const status = parsed.broken ? 'draft' : (fm.status ?? (type === 'pages' ? 'public' : 'draft'));
-      // id 与 Astro glob loader 一致：相对集合目录的路径（/ 分隔）去扩展名
-      const id = path.relative(dir, full).replace(/\\/g, '/').replace(/\.(md|mdx)$/i, '');
       entries.push({
         type,
         id,
@@ -96,9 +96,10 @@ async function extractMedia(body, destDir) {
     const src = path.join(ROOT, 'public', decoded.replace(/^\//, ''));
     try {
       await stat(src);
-      // 保留 media/ 下的相对子路径而非 basename 拍平，不同子目录同名文件不互相覆盖
-      const relPath = decoded.replace(/^\//, '');
-      const dest = path.join(destDir, ...relPath.split('/'));
+      // 定位文件用解码路径；改写正文保留原始编码形式——文件名含空格时
+      // 裸空格在 Markdown 圆括号语法里是非法的（会被解析成标题）
+      const relPath = ref.replace(/^\//, '');
+      const dest = path.join(destDir, ...decoded.replace(/^\//, '').split('/'));
       await mkdir(path.dirname(dest), { recursive: true });
       await copyFile(src, dest);
       copied.set(ref, relPath);

@@ -89,7 +89,8 @@ async function copyImage(src, baseFile, slug) {
     const name = await uniqueFilename(imgDir, path.basename(abs));
     const dest = path.join(imgDir, name);
     await copyFile(abs, dest);
-    return `/media/import-${slug}/${encodeURI(name)}`;
+    // 逐段编码文件名：encodeURI 不处理 #/?，含这些字符的文件名会生成断链 URL
+    return `/media/import-${slug}/${encodeURIComponent(name)}`;
   } catch {
     return null;
   }
@@ -114,7 +115,8 @@ async function processImages(html, slug, notes, losses, baseFile) {
     }
     const dest = await copyImage(src, baseFile, slug);
     if (dest) {
-      const alt = m[0].match(/\balt=["']([^"']*)["']/i)?.[1] ?? '';
+      // (?<![-\w]) 避免 data-alt 之类的属性被误当 alt
+      const alt = m[0].match(/(?<![-\w])alt=["']([^"']*)["']/i)?.[1] ?? '';
       html = replaceAt(html, m.index, m[0], `<img src="${dest}" alt="${alt.replace(/"/g, '&quot;')}">`);
       copied++;
     } else {
@@ -369,6 +371,10 @@ async function main() {
     if (e.skipped) continue;
     const slugBase = slugify(e.title) || `${type}-item`;
     const { name, full, renamed } = await pickPath(outDir, `${e.date}-${slugBase}`);
+    // archives 的 sourceUrl 为 schema 必填：源内容缺来源链接时用 new-post 同款占位符并记入报告
+    if (type === 'archives' && !e.sourceLink) {
+      e.notes.push('归档缺来源链接，sourceUrl 已用占位符，修正后再公开');
+    }
     const fm = [
       '---',
       `title: "${yamlEscape(e.title)}"`,
@@ -376,7 +382,11 @@ async function main() {
       `tags: [${e.tags.map((t) => `"${yamlEscape(t)}"`).join(', ')}]`,
       `status: ${status}`,
       `summary: "${yamlEscape(e.summary ?? '')}"`,
-      e.sourceLink ? `sourceUrl: "${yamlEscape(e.sourceLink)}"` : null,
+      e.sourceLink
+        ? `sourceUrl: "${yamlEscape(e.sourceLink)}"`
+        : type === 'archives'
+          ? 'sourceUrl: "https://example.com/share/xxx"'
+          : null,
       '---',
       '',
       e.body,
