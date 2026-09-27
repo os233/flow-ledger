@@ -35,17 +35,6 @@
   /* 布局 */
   --content-max-width: 48rem;
   --header-height: 3.5rem;
-
-  /* Pagefind UI 对接设计令牌（明暗随 .dark 自动切换） */
-  --pagefind-ui-scale: 0.95;
-  --pagefind-ui-primary: var(--color-accent);
-  --pagefind-ui-text: var(--color-text);
-  --pagefind-ui-background: var(--color-bg-raised);
-  --pagefind-ui-border: var(--color-border);
-  --pagefind-ui-tag: var(--color-bg-muted);
-  --pagefind-ui-border-width: 1px;
-  --pagefind-ui-border-radius: var(--radius-card);
-  --pagefind-ui-font: var(--font-sans);
 }
 
 .dark {
@@ -62,6 +51,23 @@
   --color-code-bg: #292524;
   --color-badge-private: #f87171;
   --color-badge-draft: #facc15;
+}
+
+/*
+ * Pagefind UI 对接设计令牌（明暗随 .dark 自动切换）。
+ * pagefind-ui.css 自带 :root 默认值，且在站点样式之后于 <body> 内加载；
+ * 同特异性下会压掉 :root 中的覆盖，故用 :root:root 提高特异性保证生效。
+ */
+:root:root {
+  --pagefind-ui-scale: 0.95;
+  --pagefind-ui-primary: var(--color-accent);
+  --pagefind-ui-text: var(--color-text);
+  --pagefind-ui-background: var(--color-bg-raised);
+  --pagefind-ui-border: var(--color-border);
+  --pagefind-ui-tag: var(--color-bg-muted);
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: var(--radius-card);
+  --pagefind-ui-font: var(--font-sans);
 }
 
 @theme inline {
@@ -217,20 +223,19 @@ body {
   opacity: 0.55;
 }
 
-/* Shiki 双主题：默认亮色，.dark 下切换暗色令牌 */
-.astro-code,
-.astro-code span {
-  color: var(--shiki-light) !important;
-  background-color: var(--shiki-light-bg) !important;
-  font-style: var(--shiki-light-font-style) !important;
-  font-weight: var(--shiki-light-font-weight) !important;
-}
+/*
+ * Shiki 双主题：亮色主题颜色由 Shiki 直接内联在 style 属性上（defaultColor=light），
+ * 只有暗色主题会输出 --shiki-dark* 变量。不要引用不存在的 --shiki-light*——
+ * 变量缺失会让整条声明失效，代码块将丢失全部语法色。
+ * .dark 下切换到暗色变量，使代码块跟随站内手动主题切换而非系统偏好。
+ */
 .dark .astro-code,
 .dark .astro-code span {
   color: var(--shiki-dark) !important;
   background-color: var(--shiki-dark-bg) !important;
   font-style: var(--shiki-dark-font-style) !important;
   font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
