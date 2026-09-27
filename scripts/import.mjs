@@ -21,7 +21,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import TurndownService from 'turndown';
 import { XMLParser } from 'fast-xml-parser';
-import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, normalizeDate } from './lib/content-io.mjs';
+import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, normalizeDate, localDate, parseArgs } from './lib/content-io.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MEDIA_DIR = path.join(ROOT, 'public', 'media');
@@ -46,25 +46,19 @@ turndown.addRule('wpCaption', {
   },
 });
 
-function parseArgs(argv) {
-  const opts = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith('--')) {
-      const next = argv[i + 1];
-      if (next === undefined || next.startsWith('--')) opts[a.slice(2)] = true;
-      else {
-        opts[a.slice(2)] = next;
-        i++;
-      }
-    } else opts._.push(a);
-  }
-  return opts;
-}
-
 const usedSlugs = new Set();
 /** 磁盘探测：pickPath 需要跨运行防覆盖，仅靠单次运行内的内存 Set 不够 */
 const fileExists = async (p) => stat(p).then(() => true).catch(() => false);
+
+/** 目录内唯一文件名：已存在则加 -2/-3 后缀，避免多篇文章共用图片目录时同名互相覆盖 */
+async function uniqueFilename(dir, name) {
+  const ext = path.extname(name);
+  const stem = ext ? name.slice(0, -ext.length) : name;
+  for (let n = 1; ; n++) {
+    const candidate = n === 1 ? name : `${stem}-${n}${ext}`;
+    if (!(await fileExists(path.join(dir, candidate)))) return candidate;
+  }
+}
 
 async function pickPath(dir, base) {
   let candidate = base;
@@ -92,9 +86,10 @@ async function copyImage(src, baseFile, slug) {
     await stat(abs);
     const imgDir = path.join(MEDIA_DIR, `import-${slug}`);
     await mkdir(imgDir, { recursive: true });
-    const dest = path.join(imgDir, path.basename(abs));
+    const name = await uniqueFilename(imgDir, path.basename(abs));
+    const dest = path.join(imgDir, name);
     await copyFile(abs, dest);
-    return `/media/import-${slug}/${encodeURI(path.basename(abs))}`;
+    return `/media/import-${slug}/${encodeURI(name)}`;
   } catch {
     return null;
   }
@@ -104,7 +99,9 @@ async function copyImage(src, baseFile, slug) {
 async function processImages(html, slug, notes, losses, baseFile) {
   const imgs = [...html.matchAll(/<img\b[^>]*src=["']([^"']+)["'][^>]*>/gi)];
   let copied = 0;
-  for (const m of imgs) {
+  // 倒序按 index 替换：String.replace 只换首个且相同标签会互相干扰
+  for (let i = imgs.length - 1; i >= 0; i--) {
+    const m = imgs[i];
     const src = m[1];
     if (/^(https?:)?\/\//.test(src)) {
       notes.push(`图片为绝对 URL，保留原链接：${src}`);
@@ -112,37 +109,44 @@ async function processImages(html, slug, notes, losses, baseFile) {
     }
     if (/^data:/i.test(src)) {
       losses.push(`内联 data: 图片未落盘（${src.slice(0, 40)}…）`);
-      html = html.replace(m[0], `<p>【迁移损失】内联 data: 图片未落盘</p>`);
+      html = replaceAt(html, m.index, m[0], `<p>【迁移损失】内联 data: 图片未落盘</p>`);
       continue;
     }
     const dest = await copyImage(src, baseFile, slug);
     if (dest) {
-      html = html.replace(m[0], `<img src="${dest}" alt="">`);
+      const alt = m[0].match(/\balt=["']([^"']*)["']/i)?.[1] ?? '';
+      html = replaceAt(html, m.index, m[0], `<img src="${dest}" alt="${alt.replace(/"/g, '&quot;')}">`);
       copied++;
     } else {
       losses.push(`相对图片源文件不存在，正文移除并记录：${src}`);
       // 文本段落占位：turndown 会丢弃 HTML 注释，只有元素文本能穿透转换
-      html = html.replace(m[0], `<p>【迁移损失】图片缺失：${src}</p>`);
+      html = replaceAt(html, m.index, m[0], `<p>【迁移损失】图片缺失：${src}</p>`);
     }
   }
   if (copied) notes.push(`落盘图片 ${copied} 张到 public/media/import-*/`);
   return { html, copied };
 }
 
+/** 在指定 index 处替换一段文本（matchAll 的 index 语义，倒序遍历时安全） */
+function replaceAt(text, index, target, replacement) {
+  return text.slice(0, index) + replacement + text.slice(index + target.length);
+}
+
 /** Markdown 内容里的 ![alt](src)：与 HTML 同策略，缺失即替换为损失注释 */
 async function processMarkdownImages(md, slug, notes, losses, baseFile) {
   const imgs = [...md.matchAll(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)];
   let copied = 0;
-  for (const m of imgs) {
+  for (let i = imgs.length - 1; i >= 0; i--) {
+    const m = imgs[i];
     const [, alt, src] = m;
     if (/^(https?:)?\/\//.test(src)) continue;
     const dest = await copyImage(src, baseFile, slug);
     if (dest) {
-      md = md.replace(m[0], `![${alt}](${dest})`);
+      md = replaceAt(md, m.index, m[0], `![${alt}](${dest})`);
       copied++;
     } else {
       losses.push(`相对图片源文件不存在，正文移除并记录：${src}`);
-      md = md.replace(m[0], `<!-- 迁移损失：图片缺失 ${src} -->`);
+      md = replaceAt(md, m.index, m[0], `<!-- 迁移损失：图片缺失 ${src} -->`);
     }
   }
   if (copied) notes.push(`落盘图片 ${copied} 张到 public/media/import-*/`);
@@ -172,7 +176,6 @@ async function importMarkdown(file, o) {
 
   const slug = slugify(title) || 'md';
   const img = await processMarkdownImages(split.body.trim(), slug, notes, losses, file);
-  if (img.copied) notes.push(`落盘图片 ${img.copied} 张到 public/media/import-*/`);
 
   return {
     title,
@@ -193,7 +196,7 @@ async function importHtml(file, o) {
   const title =
     text.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ??
     text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]?.replace(/<[^>]+>/g, '').trim() ??
-    path.basename(file, '.html');
+    path.basename(file).replace(/\.(html?)$/i, '');
   const dateMatch =
     text.match(/<time[^>]*datetime=["']([^"']+)["']/i) ??
     text.match(/<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i);
@@ -206,7 +209,6 @@ async function importHtml(file, o) {
   let html = body.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, '');
   const img = await processImages(html, slugify(title) || 'html', notes, losses, file);
   html = img.html;
-  if (img.copied) notes.push(`落盘图片 ${img.copied} 张到 public/media/import-*/`);
 
   const md = turndown.turndown(html).replace(/\n{3,}/g, '\n\n').trim();
   const tagMatches = [...text.matchAll(/<meta[^>]+property=["']article:tag["'][^>]+content=["']([^"']+)["']/gi)].map((m) => m[1]);
@@ -268,7 +270,7 @@ async function importWxr(file, o) {
 }
 
 function fileDate(file) {
-  return new Date().toISOString().slice(0, 10);
+  return localDate();
 }
 
 const CONTENT_EXT = /\.(md|markdown|html?|htm|xml)$/i;
@@ -371,7 +373,7 @@ async function main() {
       '---',
       `title: "${yamlEscape(e.title)}"`,
       `date: ${e.date}`,
-      `tags: [${e.tags.join(', ')}]`,
+      `tags: [${e.tags.map((t) => `"${yamlEscape(t)}"`).join(', ')}]`,
       `status: ${status}`,
       `summary: "${yamlEscape(e.summary ?? '')}"`,
       e.sourceLink ? `sourceUrl: "${yamlEscape(e.sourceLink)}"` : null,

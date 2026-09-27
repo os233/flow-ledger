@@ -22,6 +22,7 @@
 import { writeFile, access, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { yamlEscape, localDate, parseArgs } from './lib/content-io.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TYPES = {
@@ -31,30 +32,6 @@ const TYPES = {
   posts: { dir: 'content/posts', extra: [] },
   pages: { dir: 'content/pages', extra: [] },
 };
-
-function parseArgs(argv) {
-  const opts = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith('--')) {
-      const key = a.slice(2);
-      const next = argv[i + 1];
-      if (next === undefined || next.startsWith('--')) {
-        opts[key] = true; // 无值开关
-      } else {
-        opts[key] = next;
-        i++;
-      }
-    } else {
-      opts._.push(a);
-    }
-  }
-  return opts;
-}
-
-function yamlEscape(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-}
 
 function deriveSlug(title) {
   const ascii = title
@@ -80,23 +57,22 @@ async function pickPath(dir, base) {
 
 function frontmatter(type, o) {
   const q = (v) => `"${yamlEscape(v)}"`;
-  const lines = [
-    '---',
-    `title: ${q(o.title)}`,
-    `date: ${o.date}`,
-  ];
+  const lines = ['---', `title: ${q(o.title)}`];
   if (type === 'pages') {
+    // pages schema 没有 date/tags/status，只写它支持的字段
     lines.push(`updated: ${o.date}`);
   } else {
+    lines.push(`date: ${o.date}`);
     // lines.push(`updated: ${o.date}`); // 有修改时取消注释
-    lines.push(`tags: [${o.tags.join(', ')}]`);
+    // 标签加引号：值含逗号/引号时裸值会产出损坏 YAML
+    lines.push(`tags: [${o.tags.map((t) => `"${yamlEscape(t)}"`).join(', ')}]`);
     lines.push(`status: ${o.status}`);
     lines.push(`summary: ${q(o.summary ?? '')}`);
   }
   if (type === 'archives') {
     lines.push(
       `sourceUrl: ${q(o.sourceUrl ?? 'https://example.com/share/xxx')}`,
-      `provider: ${o.provider ?? 'chatgpt'}`,
+      `provider: ${q(o.provider ?? 'chatgpt')}`,
       `capturedAt: ${o.date}`,
       `format: markdown`,
       // `originalHash: sha256:...`, // 可选：原文指纹
@@ -104,7 +80,7 @@ function frontmatter(type, o) {
   }
   if (type === 'projects') {
     lines.push(
-      `repo: ${o.repo ?? 'owner/name'}`,
+      `repo: ${q(o.repo ?? 'owner/name')}`,
       // `homepage: https://...`, // 可选
       `featured: false`,
     );
@@ -139,9 +115,13 @@ async function main() {
     process.exit(1);
   }
 
-  const date = opts.date ?? new Date().toISOString().slice(0, 10);
+  const date = opts.date ?? localDate();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     console.error(`非法日期 "${date}"，需要 YYYY-MM-DD`);
+    process.exit(1);
+  }
+  if (opts.repo && !/^[\w.-]+\/[\w.-]+$/.test(opts.repo)) {
+    console.error(`非法 repo "${opts.repo}"，需要 "owner/name" 形式`);
     process.exit(1);
   }
 
@@ -175,7 +155,8 @@ async function main() {
   await writeFile(full, content, 'utf8');
 
   console.log(`已创建 ${path.relative(ROOT, full)}`);
-  console.log(`  类型: ${type} | 状态: ${status}（确认后改为 public）| URL 将为 /${type}/${name.replace(/\.md$/, '')}/`);
+  // 站点部署在 /flow-ledger/ 子路径（astro.config 的 BASE_PATH）
+  console.log(`  类型: ${type} | 状态: ${status}（确认后改为 public）| URL 将为 /flow-ledger/${type}/${name.replace(/\.md$/, '')}/`);
   if (!opts.slug && !deriveSlug(title)) {
     console.log('  提示: 标题无 ASCII 词，slug 使用了类型名兜底，建议用 --slug 指定更友好的 URL。');
   }

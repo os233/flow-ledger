@@ -24,6 +24,15 @@ async function* walk(dir) {
   }
 }
 
+/** 畸形转义序列（如 %zz）decode 会抛异常，按原文处理 */
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function resolveTarget(fromHtml, href) {
   const [withoutHash] = href.split('#');
   const withoutQuery = withoutHash.split('?')[0];
@@ -39,9 +48,9 @@ function resolveTarget(fromHtml, href) {
         break;
       }
     }
-    return path.join(DIST, decodeURIComponent(rel));
+    return path.join(DIST, safeDecode(rel));
   }
-  const target = path.resolve(path.dirname(fromHtml), decodeURIComponent(withoutQuery));
+  const target = path.resolve(path.dirname(fromHtml), safeDecode(withoutQuery));
   const rel = path.relative(DIST, target);
   if (rel.startsWith('..')) return null; // 越出 dist 的路径不做判断
   return target;
@@ -70,7 +79,8 @@ const broken = [];
 
 for (const file of htmlFiles) {
   const html = await readFile(file, 'utf8');
-  const attrs = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]);
+  // 前置空白边界：排除 data-src 之类的其他属性被误当链接
+  const attrs = [...html.matchAll(/\s(?:href|src)="([^"]+)"/g)].map((m) => m[1]);
   for (const href of attrs) {
     if (
       href.startsWith('http://') ||

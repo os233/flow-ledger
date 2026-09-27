@@ -18,9 +18,11 @@ for (const [key, list] of [...groups.entries()].sort()) {
   let contrast = 0;
   for (const f of list) {
     const r = JSON.parse(readFileSync(join(dir, f), 'utf8'));
-    perf.push(Math.round(r.categories.performance.score * 100));
-    a11y.push(Math.round(r.categories.accessibility.score * 100));
-    contrast = (r.audits['color-contrast'].details?.items ?? []).length;
+    // score 为 null（audit 崩溃的报告）时按 0 计并归入中位数，避免 Math.round(null*100) 的隐式行为
+    perf.push(Math.round((r.categories?.performance?.score ?? 0) * 100));
+    a11y.push(Math.round((r.categories?.accessibility?.score ?? 0) * 100));
+    // 累加组内所有文件的对比度问题数（此前每轮覆盖，只反映最后一个文件）
+    contrast += (r.audits?.['color-contrast']?.details?.items ?? []).length;
   }
   console.log(
     `${key}: n=${list.length} perf median=${med(perf)}(${perf.join(',')}) ` +

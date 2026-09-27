@@ -75,15 +75,17 @@ async function main() {
     }
   }
 
-  const next = { ...previous.repos };
+  // 以本轮 repos 为白名单重建：失败的仓库保留旧缓存，已从内容中移除的仓库不再残留
+  const next = {};
   const results = [];
   for (const repo of repos) {
     try {
       next[repo] = await fetchRepo(repo, token);
       results.push(`  ✓ ${repo}`);
     } catch (err) {
-      const kept = next[repo] ? '保留旧缓存' : '无缓存可用';
-      results.push(`  ✗ ${repo}（${err.message}，${kept}）`);
+      const kept = previous.repos?.[repo];
+      if (kept) next[repo] = kept;
+      results.push(`  ✗ ${repo}（${err.message}，${kept ? '保留旧缓存' : '无缓存可用'}）`);
     }
   }
 

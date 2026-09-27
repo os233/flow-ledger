@@ -55,6 +55,39 @@ export function yamlEscape(v) {
   );
 }
 
+/** 本地时区日期，YYYY-MM-DD（toISOString 是 UTC，东八区凌晨会得到「昨天」） */
+export function localDate(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * 命令行参数解析：--key value、--key=value、无值开关均可；
+ * 位置参数收集到 opts._。import/export/new-post 共用。
+ */
+export function parseArgs(argv) {
+  const opts = { _: [] };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith('--')) {
+      const eq = a.indexOf('=');
+      if (eq > 2) {
+        opts[a.slice(2, eq)] = a.slice(eq + 1);
+        continue;
+      }
+      const next = argv[i + 1];
+      if (next === undefined || next.startsWith('--')) opts[a.slice(2)] = true;
+      else {
+        opts[a.slice(2)] = next;
+        i++;
+      }
+    } else opts._.push(a);
+  }
+  return opts;
+}
+
 export function slugify(text) {
   const ascii = text
     .toLowerCase()
@@ -76,12 +109,12 @@ export function parseTags(raw) {
 export function normalizeDate(input, tzNote = [], source = '') {
   if (!input) {
     tzNote.push(`未提供日期${source ? `（${source}）` : ''}，已用今天代替`);
-    return new Date().toISOString().slice(0, 10);
+    return localDate();
   }
   const d = new Date(input);
   if (Number.isNaN(d.getTime())) {
     tzNote.push(`无法解析日期 "${input}"${source ? `（${source}）` : ''}，已用今天代替`);
-    return new Date().toISOString().slice(0, 10);
+    return localDate();
   }
   if (/[T-Z+]/i.test(String(input).trim())) {
     tzNote.push(`日期含时区（${input} → UTC ${d.toISOString()}），记录 UTC 日期`);
