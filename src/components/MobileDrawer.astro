@@ -100,4 +100,9 @@ const links = [
       }
     }
   });
+
+  // 抽屉打开时窗口拉宽到 md+：抽屉被纯 CSS 隐藏，滚动锁定会残留，主动关闭
+  window.matchMedia('(min-width: 768px)').addEventListener('change', (e) => {
+    if (e.matches && drawer && !drawer.classList.contains('hidden')) closeDrawer();
+  });
 </script>

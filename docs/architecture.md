@@ -64,17 +64,17 @@ GitHub Pages 项目站点部署在 `<owner>.github.io/flow-ledger/` 子路径下
 ### 4. GitHub 项目数据
 
 - `content/projects/*.md` 只写 `repo: owner/name` 等人工描述；
-- `scripts/fetch-github-data.mjs` 读出全部 repo 标识，调用 REST API，**合并写入** `src/data/github-cache.json`（失败仓库保留旧值）；
+- `scripts/fetch-github-data.mjs` 读出全部 repo 标识，调用 REST API，按当前内容的 repo 白名单重建写入 `src/data/github-cache.json`（失败仓库保留旧值，已移除的仓库不再残留）；
 - 构建期 `ProjectCard` 直接 import 该 JSON——构建不依赖网络；
-- `refresh-github-data.yml` 每日 UTC 02:23 刷新并提交，token 仅存在于 Actions 运行时。
+- `refresh-github-data.yml` 每日 UTC 02:23 刷新，数据有变化才提交，并在提交后显式 `workflow_dispatch` 触发 Deploy（GITHUB_TOKEN 的 push 不会自动触发其他工作流），token 仅存在于 Actions 运行时。
 
 ## CI/CD
 
 | 工作流 | 触发 | 步骤 |
 | --- | --- | --- |
-| CI | push（非 main）/ PR | npm ci → sync+check+build → check-links |
-| Deploy | push main | npm ci → build（注入 SITE/BASE_PATH）→ check-links → upload → deploy-pages |
-| Refresh GitHub data | 每日定时 / 手动 | fetch 数据 → 有变化则提交 |
+| CI | PR | npm ci → sync+check+build → check-links |
+| Deploy | push main / 手动 | npm ci → build（注入 SITE/BASE_PATH）→ check-links → upload → deploy-pages |
+| Refresh GitHub data | 每日定时 / 手动 | fetch 数据 → 有变化则提交 → 提交后触发 Deploy |
 
 仓库规范：`main` 始终可发布；功能走 `feat/<name>` 分支 PR 合并；Conventional Commits；Dependabot（npm + actions）周更。
 

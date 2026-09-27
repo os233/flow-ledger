@@ -75,16 +75,26 @@ async function main() {
     }
   }
 
-  const next = { ...previous.repos };
+  // 以本轮 repos 为白名单重建：失败的仓库保留旧缓存，已从内容中移除的仓库不再残留
+  const next = {};
   const results = [];
   for (const repo of repos) {
     try {
       next[repo] = await fetchRepo(repo, token);
       results.push(`  ✓ ${repo}`);
     } catch (err) {
-      const kept = next[repo] ? '保留旧缓存' : '无缓存可用';
-      results.push(`  ✗ ${repo}（${err.message}，${kept}）`);
+      const kept = previous.repos?.[repo];
+      if (kept) next[repo] = kept;
+      results.push(`  ✗ ${repo}（${err.message}，${kept ? '保留旧缓存' : '无缓存可用'}）`);
     }
+  }
+
+  // 数据无变化时不写文件：fetchedAt 保留上次值，也让 refresh 工作流的
+  // git diff 检查真正生效，避免每天产生空转提交
+  if (JSON.stringify(next) === JSON.stringify(previous.repos ?? {})) {
+    console.log(`[fetch-github-data] ${repos.length} 个仓库，数据与上次缓存一致，不更新文件`);
+    for (const line of results) console.log(line);
+    return;
   }
 
   const cache = {

@@ -2,10 +2,9 @@
 name: CI
 
 on:
-  push:
-    branches-ignore:
-      - main # main 由 Deploy 工作流负责
   pull_request:
+    # 只由 PR 触发：同时监听 push 会让每个分支推送跑两遍完整构建；
+    # main 分支的构建与发布由 Deploy 工作流负责，分支开发按仓库约定一律经 PR 合并
 
 permissions:
   contents: read

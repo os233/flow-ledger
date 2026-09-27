@@ -3,6 +3,8 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import { withBase } from '@/lib/site';
 
 const pagefindUiSrc = withBase('/pagefind/pagefind-ui.js');
+// Pagefind UI 的样式独立分发，JS 不会自动注入；global.css 的 --pagefind-ui-* 主题令牌也由它消费
+const pagefindUiCss = withBase('/pagefind/pagefind-ui.css');
 ---
 
 <BaseLayout title="搜索" description="全站全文搜索（灵感、归档、项目与博客）。">
@@ -24,6 +26,7 @@ const pagefindUiSrc = withBase('/pagefind/pagefind-ui.js');
     <div id="search"></div>
   </div>
 
+  <link rel="stylesheet" href={pagefindUiCss} />
   <script is:inline src={pagefindUiSrc} defer></script>
   <script>
     interface PagefindUICtor {

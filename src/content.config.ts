@@ -14,7 +14,10 @@ const baseSchema = z.object({
   title: z.string().min(1),
   date: z.coerce.date(),
   updated: z.coerce.date().optional(),
-  tags: z.array(z.string()).default([]),
+  // 标签会成为 /tags/<tag>/ 的 URL 段，禁止破坏路径形态的字符（含空格等仍可用，构建期会编码）
+  tags: z
+    .array(z.string().trim().min(1).regex(/^[^/#?%]+$/, '标签不能包含 / # ? % 字符'))
+    .default([]),
   status: z.enum(['draft', 'private', 'public']).default('draft'),
   summary: z.string().optional(),
 });
@@ -29,7 +32,8 @@ const archives = defineCollection({
   schema: baseSchema.extend({
     sourceUrl: z.string().url(),
     provider: z.string().min(1),
-    capturedAt: z.coerce.date().default(new Date()),
+    // 缺省按缺失处理（展示层条件渲染）；不用构建时刻兜底，避免「抓取于」变成「构建于」
+    capturedAt: z.coerce.date().optional(),
     format: z.enum(['markdown', 'html', 'json']).default('markdown'),
     originalHash: z.string().optional(),
   }),
