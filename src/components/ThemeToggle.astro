@@ -67,6 +67,11 @@ const labels: Record<Theme, string> = {
 
   apply(storedTheme());
 
+  // auto 模式下跟随系统深浅色切换（长驻页面不刷新也要生效）
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (storedTheme() === 'auto') apply('auto');
+  });
+
   document.getElementById('theme-toggle')?.addEventListener('click', () => {
     const next = ORDER[(ORDER.indexOf(storedTheme()) + 1) % ORDER.length] as Theme;
     localStorage.setItem(KEY, next);

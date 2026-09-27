@@ -7,7 +7,9 @@ export async function getStaticPaths() {
   const entries = await getFeedEntries();
   const tags = new Set<string>();
   for (const e of entries) for (const t of e.data.tags) tags.add(t);
-  return [...tags].map((tag) => ({ params: { tag } }));
+  // tag 必须经 props 显式传递：Astro.props 只含 getStaticPaths 传入的 props，
+  // 路由参数在 Astro.params 里，混用会导致页面拿到 undefined（所有标签页渲染为空）
+  return [...tags].map((tag) => ({ params: { tag }, props: { tag } }));
 }
 
 const { tag } = Astro.props;
