@@ -87,6 +87,14 @@ async function main() {
     }
   }
 
+  // 数据无变化时不写文件：fetchedAt 保留上次值，也让 refresh 工作流的
+  // git diff 检查真正生效，避免每天产生空转提交
+  if (JSON.stringify(next) === JSON.stringify(previous.repos ?? {})) {
+    console.log(`[fetch-github-data] ${repos.length} 个仓库，数据与上次缓存一致，不更新文件`);
+    for (const line of results) console.log(line);
+    return;
+  }
+
   const cache = {
     fetchedAt: new Date().toISOString(),
     repos: next,
