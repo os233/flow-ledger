@@ -1,5 +1,5 @@
 ---
-import { GITHUB_PROFILE_URL, SITE_TITLE, withBase } from '@/lib/site';
+import { GITHUB_PROFILE_URL, GITHUB_REPO_URL, SITE_TITLE, withBase } from '@/lib/site';
 
 const year = new Date().getFullYear();
 ---
@@ -17,7 +17,7 @@ const year = new Date().getFullYear();
         >CC BY 4.0</a
       > · 代码
       <a
-        href={withBase('/')}
+        href={GITHUB_REPO_URL}
         class="underline underline-offset-2 hover:text-ink"
         >MIT</a
       >

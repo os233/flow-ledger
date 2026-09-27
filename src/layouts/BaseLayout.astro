@@ -30,6 +30,8 @@ const {
 const fullTitle = title ? `${title} · ${SITE_TITLE}` : `${SITE_TITLE} · 先记下，再整理`;
 const canonical = canonicalUrl(Astro.url.pathname, Astro.site);
 const ogImage = new URL(withBase(OG_IMAGE_PATH), Astro.site ?? 'https://example.github.io');
+// PR 预览部署设 PUBLIC_NOINDEX=1，避免临时部署的预览内容被搜索引擎收录
+const noindex = process.env.PUBLIC_NOINDEX === '1';
 ---
 
 <!doctype html>
@@ -40,6 +42,7 @@ const ogImage = new URL(withBase(OG_IMAGE_PATH), Astro.site ?? 'https://example.
     <meta name="generator" content={Astro.generator} />
     <title>{fullTitle}</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
     <link

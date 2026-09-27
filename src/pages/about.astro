@@ -4,8 +4,10 @@ import { getCollection, render } from 'astro:content';
 
 const pages = await getCollection('pages');
 const about = pages.find((p) => p.id === 'about');
-const headings = about ? (await render(about)).headings : [];
-const { Content } = about ? await render(about) : { Content: null };
+// 同一篇内容只 render 一次，同时取正文与标题树
+const { Content, headings } = about
+  ? await render(about)
+  : { Content: null, headings: [] };
 ---
 
 <BaseLayout title="关于" description="关于流水账：一个「先记下、再整理、可长期保存」的数字花园。">
