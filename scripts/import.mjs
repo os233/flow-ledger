@@ -63,10 +63,14 @@ function parseArgs(argv) {
 }
 
 const usedSlugs = new Set();
+/** 磁盘探测：pickPath 需要跨运行防覆盖，仅靠单次运行内的内存 Set 不够 */
+const fileExists = async (p) => stat(p).then(() => true).catch(() => false);
+
 async function pickPath(dir, base) {
   let candidate = base;
   let n = 1;
-  while (usedSlugs.has(candidate)) {
+  // 同时检查本轮已用 slug 与磁盘上已有的同名文件：二次导入同标题内容时不覆盖上一次的 .md
+  while (usedSlugs.has(candidate) || (await fileExists(path.join(dir, `${candidate}.md`)))) {
     n++;
     candidate = `${base}-${n}`;
   }
@@ -76,14 +80,21 @@ async function pickPath(dir, base) {
 
 /** 复制一张相对图片；成功返回目标 URL，失败返回 null 并记录损失 */
 async function copyImage(src, baseFile, slug) {
-  const abs = path.resolve(path.dirname(baseFile), src.split(/[?#]/)[0]);
+  // 正文里的路径通常是 URL 编码形式（如 my%20pic.png），先解码再探测真实文件
+  let rel = src.split(/[?#]/)[0];
+  try {
+    rel = decodeURIComponent(rel);
+  } catch {
+    // 畸形转义序列按原文处理
+  }
+  const abs = path.resolve(path.dirname(baseFile), rel);
   try {
     await stat(abs);
     const imgDir = path.join(MEDIA_DIR, `import-${slug}`);
     await mkdir(imgDir, { recursive: true });
     const dest = path.join(imgDir, path.basename(abs));
     await copyFile(abs, dest);
-    return `/media/import-${slug}/${path.basename(abs)}`;
+    return `/media/import-${slug}/${encodeURI(path.basename(abs))}`;
   } catch {
     return null;
   }
@@ -230,7 +241,14 @@ async function importWxr(file, o) {
       continue;
     }
     const tzNote = [];
-    const date = normalizeDate(item['wp:post_date_gmt'] ?? item.pubDate, tzNote, 'wp:post_date_gmt/pubDate');
+    // wp:post_date_gmt 是 GMT 时间但无时区标记，new Date() 会按本地时区解析导致日期偏移；
+    // 形如 YYYY-MM-DD HH:MM:SS 的值补上 Z 标记后再归一（pubDate 本身含时区信息，不受影响）
+    const rawDate = item['wp:post_date_gmt'] ?? item.pubDate;
+    const gmtDate =
+      rawDate && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(rawDate).trim())
+        ? `${String(rawDate).trim().replace(' ', 'T')}Z`
+        : rawDate;
+    const date = normalizeDate(gmtDate, tzNote, 'wp:post_date_gmt/pubDate');
     notes.push(...tzNote);
     const contentHtml = item['content:encoded'] ?? '';
     const img = await processImages(contentHtml, slugify(item.title ?? 'wxr') || 'wxr', notes, losses, file);

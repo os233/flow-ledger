@@ -46,7 +46,13 @@ export function parseSimpleFrontmatter(fm) {
 }
 
 export function yamlEscape(v) {
-  return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return (
+    String(v)
+      // 换行折叠为空格：双引号标量内的换行会改变 YAML 语义，且逐行解析器会把续行判为损坏
+      .replace(/\r?\n/g, ' ')
+      .replace(/\\/g, '\\\\')
+      .replace(/"/g, '\\"')
+  );
 }
 
 export function slugify(text) {

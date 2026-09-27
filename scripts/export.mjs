@@ -63,12 +63,19 @@ async function collectEntries() {
       const full = path.join(dir, name);
       const { text } = await readDecoded(full);
       const split = splitFrontmatter(text);
-      const fm = split.frontmatter !== null ? parseSimpleFrontmatter(split.frontmatter).data : {};
+      const parsed = split.frontmatter !== null ? parseSimpleFrontmatter(split.frontmatter) : { data: {}, broken: false };
+      if (parsed.broken) {
+        console.warn(`  ⚠ frontmatter 无法完整解析，按非公开内容处理（导出需 --with-drafts/--with-private）：${type}/${name}`);
+      }
+      const fm = parsed.data;
+      // 可见性与构建期语义对齐：frontmatter 解析失败或其余集合缺 status 的条目
+      // 不得默认按 public 导出（Zod schema 默认为 draft）；pages 无 status 概念，恒为 public
+      const status = parsed.broken ? 'draft' : (fm.status ?? (type === 'pages' ? 'public' : 'draft'));
       entries.push({
         type,
         id: name.replace(/\.(md|mdx)$/i, ''),
         file: full,
-        status: fm.status ?? 'public',
+        status,
         fm,
         body: split.body,
       });
@@ -79,25 +86,34 @@ async function collectEntries() {
 
 /** 把正文里的 /media/... 站内绝对路径改为相对路径并收集附件 */
 async function extractMedia(body, destDir) {
-  const mediaRoot = path.join(destDir, 'media');
   const refs = [...body.matchAll(/\((\/media\/[^)\s]+)\)/g)].map((m) => m[1]);
-  const copied = new Set();
+  const copied = new Map(); // 原始引用 → 导出目录内相对路径
   for (const ref of refs) {
     if (copied.has(ref)) continue;
-    const src = path.join(ROOT, 'public', ref.replace(/^\//, ''));
+    // 引用是 URL 编码形式（如 my%20pic.png），先解码再探测真实文件
+    let decoded = ref;
+    try {
+      decoded = decodeURIComponent(ref);
+    } catch {
+      // 畸形转义序列按原文处理
+    }
+    const src = path.join(ROOT, 'public', decoded.replace(/^\//, ''));
     try {
       await stat(src);
-      await mkdir(mediaRoot, { recursive: true });
-      await copyFile(src, path.join(mediaRoot, path.basename(ref)));
-      copied.add(ref);
+      // 保留 media/ 下的相对子路径而非 basename 拍平，不同子目录同名文件不互相覆盖
+      const relPath = decoded.replace(/^\//, '');
+      const dest = path.join(destDir, ...relPath.split('/'));
+      await mkdir(path.dirname(dest), { recursive: true });
+      await copyFile(src, dest);
+      copied.set(ref, relPath);
     } catch {
       console.warn(`  ⚠ 附件缺失，保留原路径：${ref}`);
     }
   }
-  for (const ref of copied) {
-    body = body.split(`(${ref})`).join('(media/' + path.basename(ref) + ')');
+  for (const [ref, relPath] of copied) {
+    body = body.split(`(${ref})`).join(`(${relPath})`);
   }
-  return { body, copied: [...copied] };
+  return { body, copied: [...copied.keys()] };
 }
 
 function frontmatterForExport(e) {

@@ -73,7 +73,6 @@ for (const file of htmlFiles) {
   const attrs = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]);
   for (const href of attrs) {
     if (
-      seen.has(href) ||
       href.startsWith('http://') ||
       href.startsWith('https://') ||
       href.startsWith('mailto:') ||
@@ -82,8 +81,12 @@ for (const file of htmlFiles) {
     ) {
       continue;
     }
-    seen.add(href);
     const target = resolveTarget(file, href);
+    // 去重键用解析结果而非原始 href：相对链接的解析依赖所在目录，
+    // 按原文字符串去重会让 A 页面解析成功的写法掩盖 B 页面同写法的断链
+    const key = target ?? `unresolvable:${href}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     if (target && !(await exists(target))) {
       broken.push({ from: path.relative(DIST, file), href });
     }
