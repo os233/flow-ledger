@@ -19,25 +19,17 @@
 import { readFile, writeFile, mkdir, readdir, stat, copyFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import TurndownService from 'turndown';
 import { XMLParser } from 'fast-xml-parser';
 import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, normalizeDate, localDate, parseArgs } from './lib/content-io.mjs';
+import { createTurndown } from './lib/html-to-md.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MEDIA_DIR = path.join(ROOT, 'public', 'media');
 const CONTENT_DIR = path.join(ROOT, 'content');
 const TYPES = ['notes', 'archives', 'projects', 'posts', 'pages'];
 
-const turndown = new TurndownService({
-  headingStyle: 'atx',
-  codeBlockStyle: 'fenced',
-  bulletListMarker: '-',
-});
-// 保留 WordPress 常见但 turndown 默认丢弃的块级元素，转成报告可追溯的占位注释
-turndown.addRule('reportLosses', {
-  filter: ['iframe', 'form', 'button', 'style', 'script'],
-  replacement: (_content, node) => `\n\n<!-- 迁移损失：丢弃 <${node.nodeName.toLowerCase()}> 元素 -->\n\n`,
-});
+// 基础规则在共享工厂内；这里只叠加 WordPress 特有规则
+const turndown = createTurndown();
 turndown.addRule('wpCaption', {
   filter: (node) => node.nodeName === 'FIGURE' || node.nodeName === 'FIGCAPTION',
   replacement: (content, node) => {
