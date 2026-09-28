@@ -14,7 +14,9 @@
  *   - slug 冲突自动加 -2/-3 后缀；
  *   - 相对路径图片复制到 public/media/import-<slug>/ 并改写链接；
  *   - 每次运行生成迁移报告（标题/日期/图片/代码块/标签/损失逐项可追溯）；
- *   - frontmatter 损坏的 Markdown 跳过并记录，不做猜测性修复。
+ *   - frontmatter 损坏的 Markdown 跳过并记录，不做猜测性修复；
+ *   - Markdown 无标题时依次回退：frontmatter title → 正文首个 # 标题 → 文件名；
+ *   - archives 类型补齐 schema 必填项：sourceUrl 缺省写占位符，provider 按源 frontmatter > sourceUrl 域名推断 > unknown。
  */
 import { readFile, writeFile, mkdir, readdir, stat, copyFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -22,6 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { XMLParser } from 'fast-xml-parser';
 import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, normalizeDate, localDate, parseArgs } from './lib/content-io.mjs';
 import { createTurndown } from './lib/html-to-md.mjs';
+import { inferProvider } from './lib/provider.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MEDIA_DIR = path.join(ROOT, 'public', 'media');
@@ -162,7 +165,7 @@ async function importMarkdown(file, o) {
     if (parsed.broken) throw Object.assign(new Error('frontmatter 解析异常'), { skip: true });
     data = parsed.data;
   }
-  const title = data.title ?? path.basename(file).replace(/\.(md|markdown)$/i, '');
+  const title = data.title || split.body.match(/^#{1,6}\s+(.+)$/m)?.[1]?.trim() || path.basename(file).replace(/\.(md|markdown)$/i, '');
   const tzNote = [];
   const date = normalizeDate(data.date ?? fileDate(file), tzNote, 'frontmatter');
   notes.push(...tzNote);
@@ -178,6 +181,7 @@ async function importMarkdown(file, o) {
     summary: data.summary ?? '',
     body: img.md,
     sourceLink: data.sourceurl ?? null,
+    provider: data.provider || null,
     notes,
     losses,
   };
@@ -363,9 +367,18 @@ async function main() {
     if (e.skipped) continue;
     const slugBase = slugify(e.title) || `${type}-item`;
     const { name, full, renamed } = await pickPath(outDir, `${e.date}-${slugBase}`);
-    // archives 的 sourceUrl 为 schema 必填：源内容缺来源链接时用 new-post 同款占位符并记入报告
-    if (type === 'archives' && !e.sourceLink) {
-      e.notes.push('归档缺来源链接，sourceUrl 已用占位符，修正后再公开');
+    // archives 的 schema 必填项：sourceUrl 缺来源链接时用 new-post 同款占位符并记入报告；
+    // provider 按源 frontmatter 显式值 > sourceUrl 域名推断 > unknown（交人工修正）
+    let provider = null;
+    if (type === 'archives') {
+      if (!e.sourceLink) {
+        e.notes.push('归档缺来源链接，sourceUrl 已用占位符，修正后再公开');
+      }
+      provider = e.provider || (e.sourceLink ? inferProvider(e.sourceLink) : null);
+      if (!provider) {
+        provider = 'unknown';
+        e.notes.push('provider 未能确定，发布前请改为实际来源');
+      }
     }
     const fm = [
       '---',
@@ -379,6 +392,7 @@ async function main() {
         : type === 'archives'
           ? 'sourceUrl: "https://example.com/share/xxx"'
           : null,
+      type === 'archives' ? `provider: "${yamlEscape(provider)}"` : null,
       '---',
       '',
       e.body,

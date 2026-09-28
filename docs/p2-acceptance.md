@@ -46,4 +46,7 @@
 
 1. **Worker 在线解析、平台适配器、LLM 增强**：按 charter 非目标裁剪；启动条件（Cloudflare 账号 + 部署授权 + 真实解析需求）满足后另立批次计划。
 2. **敏感信息扫描为高置信正则**：存在误报/漏报可能，公开前人工通读正文仍是必须步骤（脚本输出末尾固定提示）。
-3. **P1 存量缺口（实测确认）**：`npm run import -- <md> --type archives` 生成的 Frontmatter 缺 schema 必填的 `provider`（`capturedAt`/`format` 靠缺省值通过，`provider` 无缺省），该路径的文件在构建期会报错；且无 frontmatter 时标题回退为文件名而非首个标题。属导入器归档路径的存量问题，与手工归档流无关，建议后续批次修复 import.mjs 后补跑 P1 七类样例回归。
+3. **P1 存量缺口（实测确认，同日已修复）**：`npm run import -- <md> --type archives` 生成的 Frontmatter 缺 schema 必填的 `provider`（构建期报错）、无 frontmatter 时标题回退为文件名而非首个标题。已在本分支以 `fix:` 提交修复：
+   - provider 解析链：源 frontmatter 显式值 > sourceUrl 域名推断 > `unknown`（报告附「发布前请改为实际来源」提示）；域名映射提取为 `scripts/lib/provider.mjs`，与 `npm run archive` 共用一份表；
+   - 标题回退链：frontmatter title → 正文首个 `#` 标题 → 文件名；
+   - 回归证据：archives 三态实测通过（无来源 → 占位符 + `unknown`；frontmatter 带 sourceUrl → 推断为 `chatgpt`；显式 `provider: claude` → 透传），带 draft 测试归档构建通过且 dist/RSS/sitemap 零命中（[迁移报告](migrations/2026-09-28-import-archives-provider-fix.md)）；P1 七类样例重跑与 2026-09-26 基线逐行一致，`npm run check` 0 错误 0 警告（[回归报告](migrations/2026-09-28-p1-fixtures-regression.md)）。

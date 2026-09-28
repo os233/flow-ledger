@@ -29,30 +29,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, normalizeDate, localDate, parseArgs } from './lib/content-io.mjs';
 import { createTurndown } from './lib/html-to-md.mjs';
+import { inferProvider } from './lib/provider.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ARCHIVE_DIR = path.join(ROOT, 'content', 'archives');
-
-/** 常见 AI 平台分享域名 → provider。只做确定性映射，未命中交人工维护 */
-const PROVIDER_HOSTS = [
-  [/chatgpt\.com|openai\.com/, 'chatgpt'],
-  [/claude\.ai|anthropic\.com/, 'claude'],
-  [/gemini\.google\.com|bard\.google\.com/, 'gemini'],
-  [/chat\.deepseek\.com/, 'deepseek'],
-  [/kimi\.moonshot\.cn|kimi\.com/, 'kimi'],
-  [/doubao\.com/, 'doubao'],
-  [/yuanbao\.tencent\.com/, 'yuanbao'],
-  [/chatglm\.cn|bigmodel\.cn|chat\.z\.ai/, 'glm'],
-];
-
-function inferProvider(url) {
-  try {
-    const host = new URL(url).hostname;
-    return PROVIDER_HOSTS.find(([re]) => re.test(host))?.[1] ?? null;
-  } catch {
-    return null;
-  }
-}
 
 function detectFormat(file, head) {
   if (/\.(md|markdown)$/i.test(file)) return 'markdown';
