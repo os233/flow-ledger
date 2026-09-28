@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import Toc from '@/components/Toc.astro';
 import { getCollection, render } from 'astro:content';
 
 const pages = await getCollection('pages');
@@ -8,6 +9,7 @@ const about = pages.find((p) => p.id === 'about');
 const { Content, headings } = about
   ? await render(about)
   : { Content: null, headings: [] };
+const hasToc = headings.some((h) => h.depth >= 2 && h.depth <= 3);
 ---
 
 <BaseLayout title="关于" description="关于流水账：一个「先记下、再整理、可长期保存」的数字花园。">
@@ -20,23 +22,9 @@ const { Content, headings } = about
         {Content && <Content />}
       </div>
         {
-          headings.length > 0 && (
+          hasToc && (
             <div class="lg:w-56 lg:shrink-0 lg:sticky lg:self-start" style="top: calc(var(--header-height) + 1rem)">
-              <nav aria-label="目录">
-                <h2 class="text-sm font-semibold text-ink-2 mb-2">目录</h2>
-                <ul class="space-y-1.5 text-sm border-l border-line">
-                  {headings.filter((h) => h.depth === 2).map((h) => (
-                    <li>
-                      <a
-                        href={`#${h.slug}`}
-                        class="block -ml-px border-l-2 border-transparent pl-3 hover:border-accent hover:text-accent transition-colors text-ink-2"
-                      >
-                        {h.text}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
+              <Toc headings={headings} />
             </div>
           )
         }

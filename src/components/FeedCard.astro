@@ -9,10 +9,9 @@ import { formatDate, withBase } from '@/lib/site';
 
 interface Props {
   entry: FeedEntry;
-  showSummary?: boolean;
 }
 
-const { entry, showSummary = true } = Astro.props;
+const { entry } = Astro.props;
 const collection = entry.collection as FeedEntry['collection'];
 const href = withBase(`/${COLLECTION_PATHS[collection]}/${entry.id}/`);
 const isDraft = entry.data.status === 'draft';
@@ -36,7 +35,7 @@ const isDraft = entry.data.status === 'draft';
     <a href={href} class="text-ink hover:text-accent transition-colors">{entry.data.title}</a>
   </h2>
   {
-    showSummary && entry.data.summary && (
+    entry.data.summary && (
       <p class="mt-1.5 text-sm text-ink-2 leading-relaxed line-clamp-2">{entry.data.summary}</p>
     )
   }
