@@ -25,7 +25,7 @@ import { marked } from 'marked';
 import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, parseArgs } from './lib/content-io.mjs';
 
 const require = createRequire(import.meta.url);
-const archiver = require('archiver'); // archiver 为 CJS 包，无可靠 ESM 命名导出
+const { ZipArchive } = require('archiver'); // archiver 8 起导出类集合，ZIP 需用 ZipArchive 构造
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONTENT_DIR = path.join(ROOT, 'content');
@@ -190,7 +190,7 @@ async function exportAll(outDir, opts) {
   const zipPath = path.join(outDir, `flow-ledger-content-${stamp}.zip`);
   await mkdir(outDir, { recursive: true });
   const output = createWriteStream(zipPath);
-  const archive = archiver('zip', { zlib: { level: 9 } });
+  const archive = new ZipArchive({ zlib: { level: 9 } });
   // 不监听 error 会让目录缺失等问题变成 uncaughtException；finalize 只保证归档封装完成，还需等输出流落盘
   const flushed = new Promise((resolve, reject) => {
     output.on('close', resolve);
