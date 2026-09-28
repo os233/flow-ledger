@@ -12,6 +12,7 @@
     "check:links": "node scripts/check-links.mjs",
     "check:visibility": "node scripts/check-visibility.mjs",
     "new": "node scripts/new-post.mjs",
+    "archive": "node scripts/new-archive.mjs",
     "import": "node scripts/import.mjs",
     "export": "node scripts/export.mjs",
     "fetch:github": "node scripts/fetch-github-data.mjs"

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>与 Claude 讨论归档字段设计 - Claude</title>
+</head>
+<body>
+  <article>
+    <h1>与 Claude 讨论归档字段设计</h1>
+    <p><strong>我</strong>：archives 集合需要哪些额外字段？</p>
+    <p><strong>Claude</strong>：至少 <code>sourceUrl</code>、<code>provider</code>、<code>capturedAt</code>、<code>format</code>，可选 <code>originalHash</code> 记录原文指纹。</p>
+    <pre><code>originalHash: sha256:abcdef1234567890</code></pre>
+    <p>补充：转换损失要可见，例如 <code>&lt;iframe&gt;</code> 这类元素会被丢弃并留下占位注释。</p>
+    <iframe src="https://example.com/embed/demo"></iframe>
+  </article>
+</body>
+</html>
