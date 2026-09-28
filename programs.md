@@ -12,7 +12,7 @@ Flow Ledger（流水账）是一个“先记下、再整理、可长期保存”
 
 ## 技术架构
 
-- **生成与路由：** Astro 5 + TypeScript，输出静态页面。
+- **生成与路由：** Astro 7 + TypeScript，输出静态页面。
 - **内容：** Markdown/MDX、YAML Frontmatter、Astro Content Collections 与 Zod schema。
 - **样式：** Tailwind CSS 4，通过 `@tailwindcss/vite` 接入；CSS 设计令牌集中在 `src/styles/`。
 - **内容呈现：** Shiki 代码高亮、RSS 与 sitemap。
@@ -64,7 +64,7 @@ Flow Ledger（流水账）是一个“先记下、再整理、可长期保存”
 
 ## 安装、运行与构建
 
-要求 Node.js ≥ 18.17（CI 与部署当前使用 Node 20）。
+要求 Node.js ≥ 22.12（Astro 7 的最低要求；CI 与部署使用 Node 24 LTS）。
 
 ```bash
 npm install
