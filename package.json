@@ -33,7 +33,7 @@
     "marked": "^18.0.14",
     "pagefind": "1.5.2",
     "turndown": "^7.2.4",
-    "typescript": "^5.8.3"
+    "typescript": "^7.0.2"
   },
   "allowScripts": {
     "esbuild@0.25.12": true,
