@@ -62,7 +62,7 @@ const description = entry.data.summary ?? cached?.description ?? '暂无简介';
     {
       typeof cached?.language === 'string' && (
         <div class="flex items-center gap-1">
-          <span class="h-2.5 w-2.5 rounded-full bg-accent" aria-hidden="true" />
+          <span class="h-2.5 w-2.5 rounded-pill bg-accent" aria-hidden="true" />
           <dt class="sr-only">语言</dt>
           <dd>{cached.language}</dd>
         </div>

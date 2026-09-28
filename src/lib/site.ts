@@ -25,6 +25,19 @@ export function withBase(path: string): string {
   return `${BASE}${p}`;
 }
 
+/**
+ * 导航激活态判断（Header / MobileDrawer 共用）。
+ * 生产构建的目录式页面 pathname 无尾斜杠（首页为 /flow-ledger），
+ * dev 带尾斜杠；归一化后再比较，两种模式高亮行为一致。
+ * 首页做全等匹配，其余栏目按前缀匹配（覆盖列表页与其详情页）。
+ */
+export function isNavActive(currentPath: string, href: string): boolean {
+  const norm = (p: string) => (p.length > 1 ? p.replace(/\/+$/, '') : p);
+  return href === withBase('/')
+    ? norm(currentPath) === norm(withBase('/'))
+    : currentPath.startsWith(norm(href));
+}
+
 /** 基于当前请求的规范链接（canonical） */
 export function canonicalUrl(pathname: string, site: URL | undefined): string {
   const url = new URL(pathname, site ?? 'https://example.github.io');
