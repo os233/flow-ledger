@@ -21,7 +21,12 @@ const repoUrl = `https://github.com/${entry.data.repo}`;
       <div class="flex justify-between gap-2 sm:block">
         <dt class="text-ink-3">GitHub 仓库</dt>
         <dd>
-          <a href={repoUrl} class="text-link hover:underline" rel="noopener noreferrer">
+          <a
+            href={repoUrl}
+            class="text-link hover:underline"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
             {entry.data.repo}
           </a>
         </dd>
@@ -30,11 +35,17 @@ const repoUrl = `https://github.com/${entry.data.repo}`;
         entry.data.homepage && (
           <div class="flex justify-between gap-2 sm:block">
             <dt class="text-ink-3">主页</dt>
-            <dd>
-              <a href={entry.data.homepage} class="text-link hover:underline" rel="noopener noreferrer">
-                {entry.data.homepage}
-              </a>
-            </dd>
+          <dd>
+            <a
+              href={entry.data.homepage}
+              class="text-link hover:underline"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {entry.data.homepage}
+              <span class="sr-only">（在新标签页打开）</span>
+            </a>
+          </dd>
           </div>
         )
       }

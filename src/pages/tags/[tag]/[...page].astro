@@ -1,12 +1,15 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import FeedCard from '@/components/FeedCard.astro';
+import Pagination from '@/components/Pagination.astro';
+import type { Page, PaginateFunction } from 'astro';
+import type { FeedEntry } from '@/lib/content';
 import { getFeedEntries } from '@/lib/content';
 
-export async function getStaticPaths() {
+export async function getStaticPaths({ paginate }: { paginate: PaginateFunction }) {
   const entries = await getFeedEntries();
   // 按标签一次分组，避免渲染期再调一次 getFeedEntries
-  const byTag = new Map<string, typeof entries>();
+  const byTag = new Map<string, FeedEntry[]>();
   for (const e of entries) {
     for (const t of e.data.tags) {
       const list = byTag.get(t) ?? [];
@@ -14,22 +17,26 @@ export async function getStaticPaths() {
       byTag.set(t, list);
     }
   }
-  // tag 与 entries 都必须经 props 显式传递：Astro.props 只含 getStaticPaths 传入的 props，
+  // tag 必须经 props 显式传递：Astro.props 只含 getStaticPaths 传入的 props，
   // 路由参数在 Astro.params 里，混用会导致页面拿到 undefined（所有标签页渲染为空）
-  return [...byTag].map(([tag, tagged]) => ({ params: { tag }, props: { tag, entries: tagged } }));
+  return [...byTag].flatMap(([tag, tagged]) =>
+    paginate(tagged, { params: { tag }, props: { tag }, pageSize: 20 }),
+  );
 }
 
-const { tag, entries } = Astro.props;
+const { tag } = Astro.props as { tag: string };
+const { page } = Astro.props as { page: Page<FeedEntry> };
 ---
 
 <BaseLayout title={`标签：${tag}`} description={`标签 #${tag} 下的全部内容。`}>
   <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-10">
     <header class="mb-8">
       <h1 class="text-2xl sm:text-3xl font-bold text-ink">#{tag}</h1>
-      <p class="mt-2 text-ink-2">共 {entries.length} 条内容。</p>
+      <p class="mt-2 text-ink-2">共 {page.total} 条内容。</p>
     </header>
     <div class="flex flex-col gap-4">
-      {entries.map((entry) => <FeedCard entry={entry} />)}
+      {page.data.map((entry) => <FeedCard entry={entry} />)}
     </div>
+    <Pagination page={page} />
   </div>
 </BaseLayout>

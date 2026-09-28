@@ -3,7 +3,11 @@ import BaseLayout from '@/layouts/BaseLayout.astro';
 import { withBase } from '@/lib/site';
 ---
 
-<BaseLayout title="页面不存在" description="你访问的页面不存在或已被移动。">
+<BaseLayout
+  title="页面不存在"
+  description="你访问的页面不存在或已被移动。"
+  excludeFromSearch
+>
   <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-24 text-center">
     <p class="text-6xl font-bold text-accent" aria-hidden="true">404</p>
     <h1 class="mt-4 text-xl sm:text-2xl font-semibold text-ink">这条流水没有记录</h1>
@@ -22,5 +26,26 @@ import { withBase } from '@/lib/site';
         浏览博客
       </a>
     </div>
+    <div class="mt-6 flex flex-wrap justify-center gap-3">
+      {
+        [
+          { href: '/search/', label: '搜索' },
+          { href: '/tags/', label: '标签' },
+          { href: '/archives/', label: '归档' },
+        ].map((l) => (
+          <a
+            href={withBase(l.href)}
+            class="rounded-pill border border-line px-4 py-1.5 text-sm text-ink-2 transition-colors hover:border-accent hover:text-accent"
+          >
+            {l.label}
+          </a>
+        ))
+      }
+    </div>
+    <p class="mt-6 text-sm text-ink-3">
+      小提示：任意页面按
+      <kbd class="rounded border border-line bg-muted px-1.5 py-0.5 text-xs text-ink-2">/</kbd>
+      或 Ctrl+K 可以快速搜索。
+    </p>
   </div>
 </BaseLayout>

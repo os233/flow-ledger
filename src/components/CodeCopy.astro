@@ -1,0 +1,56 @@
+---
+/**
+ * 正文增强（作用于 ArticleLayout / about 的 .prose-flow 区域）：
+ * 1. 代码块复制按钮：为每个 pre 注入右上角按钮，复制成功后短暂显示「已复制」；
+ * 2. Markdown 正文外链统一新标签打开并补读屏提示（构建期不引 rehype 依赖，在客户端补齐；
+ *    布局与卡片中的静态外链已在模板中直接写 target="_blank"）。
+ * 无 JS 时优雅降级：代码照常展示，外链按默认行为打开。
+ */
+---
+
+<script>
+  function enhanceCodeCopy() {
+    document.querySelectorAll<HTMLElement>('.prose-flow pre').forEach((pre) => {
+      if (pre.querySelector('.code-copy')) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'code-copy';
+      btn.textContent = '复制';
+      btn.setAttribute('aria-label', '复制代码');
+      btn.addEventListener('click', async () => {
+        const text = (pre.querySelector('code') ?? pre).innerText.replace(/\n$/, '');
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = '已复制';
+          btn.classList.add('is-done');
+        } catch {
+          btn.textContent = '复制失败';
+        }
+        setTimeout(() => {
+          btn.textContent = '复制';
+          btn.classList.remove('is-done');
+        }, 2000);
+      });
+      pre.appendChild(btn);
+    });
+  }
+
+  function enhanceExternalLinks() {
+    document.querySelectorAll<HTMLAnchorElement>('.prose-flow a[href]').forEach((a) => {
+      const href = a.getAttribute('href') ?? '';
+      if (!/^https?:\/\//i.test(href)) return;
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      if (!a.querySelector('span[data-ext-note]')) {
+        const note = document.createElement('span');
+        note.className = 'sr-only';
+        note.setAttribute('data-ext-note', '');
+        note.textContent = '（在新标签页打开）';
+        a.appendChild(note);
+      }
+    });
+  }
+
+  enhanceCodeCopy();
+  enhanceExternalLinks();
+</script>

@@ -4,6 +4,7 @@
  */
 import BaseLayout from './BaseLayout.astro';
 import Toc from '@/components/Toc.astro';
+import CodeCopy from '@/components/CodeCopy.astro';
 import { render, type CollectionEntry } from 'astro:content';
 import type { FeedEntry } from '@/lib/content';
 import { COLLECTION_LABELS, COLLECTION_PATHS } from '@/lib/content';
@@ -60,8 +61,10 @@ const hasToc = headings.some((h) => h.depth >= 2 && h.depth <= 3);
               href={source.url}
               class="text-link hover:underline"
               rel="noopener noreferrer"
+              target="_blank"
             >
               来源：{source.provider} ↗
+              <span class="sr-only">（在新标签页打开）</span>
             </a>
           )
         }
@@ -95,6 +98,21 @@ const hasToc = headings.some((h) => h.depth >= 2 && h.depth <= 3);
     <slot name="source" />
 
     <div class:list={['flex gap-10', hasToc ? 'flex-col lg:flex-row' : 'flex-col']}>
+      {
+        hasToc && (
+          <details
+            data-toc-mobile
+            class="lg:hidden mb-6 rounded-card border border-line bg-raised px-4 py-3"
+          >
+            <summary class="cursor-pointer text-sm font-medium text-ink-2 select-none">
+              目录
+            </summary>
+            <div class="mt-3">
+              <Toc headings={headings} />
+            </div>
+          </details>
+        )
+      }
       <div class="min-w-0 flex-1">
         <div class="prose-flow">
           <Content />
@@ -102,11 +120,16 @@ const hasToc = headings.some((h) => h.depth >= 2 && h.depth <= 3);
       </div>
       {
         hasToc && (
-          <div class="lg:w-56 lg:shrink-0 lg:sticky lg:self-start" style="top: calc(var(--header-height) + 1rem)">
+          <div
+            class="hidden lg:block lg:w-56 lg:shrink-0 lg:sticky lg:self-start"
+            style="top: calc(var(--header-height) + 1rem)"
+          >
             <Toc headings={headings} />
           </div>
         )
       }
     </div>
   </article>
+
+  <CodeCopy />
 </BaseLayout>

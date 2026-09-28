@@ -18,6 +18,8 @@ interface Props {
   ogType?: 'website' | 'article';
   /** 详情页传文章发布时间，用于 article:published_time */
   publishedTime?: Date;
+  /** 整页排除出 Pagefind 索引（搜索页、404 等自身即工具页的页面） */
+  excludeFromSearch?: boolean;
 }
 
 const {
@@ -25,6 +27,7 @@ const {
   description = SITE_DESCRIPTION,
   ogType = 'website',
   publishedTime,
+  excludeFromSearch = false,
 } = Astro.props;
 
 const fullTitle = title ? `${title} · ${SITE_TITLE}` : `${SITE_TITLE} · 先记下，再整理`;
@@ -71,6 +74,9 @@ const noindex = process.env.PUBLIC_NOINDEX === '1';
     <meta name="twitter:description" content={desc} />
     <meta name="twitter:image" content={ogImage} />
 
+    <!-- 页面可向 head 注入资源（如搜索页提前加载 Pagefind 样式） -->
+    <slot name="head" />
+
     <!-- 主题防闪烁：渲染首帧前应用存储或系统的明暗偏好 -->
     <script is:inline>
       (function () {
@@ -89,7 +95,7 @@ const noindex = process.env.PUBLIC_NOINDEX === '1';
       })();
     </script>
   </head>
-  <body class="min-h-dvh flex flex-col">
+  <body class="min-h-dvh flex flex-col" data-pagefind-ignore={excludeFromSearch ? 'true' : undefined}>
     <a href="#main" class="skip-link">跳转到主要内容</a>
     <Header />
     <MobileDrawer />
@@ -97,5 +103,36 @@ const noindex = process.env.PUBLIC_NOINDEX === '1';
       <slot />
     </main>
     <Footer />
+
+    <script>
+      // 全站搜索快捷键：/ 或 Ctrl/Cmd+K 跳转搜索页并聚焦输入框；已在搜索页时仅聚焦。
+      // 焦点在输入控件 / 富文本编辑器内时不抢占（避免干扰打字）。
+      const BASE = import.meta.env.BASE_URL.replace(/\/+$/, '');
+
+      function openSearch() {
+        if (window.location.pathname.startsWith(`${BASE}/search`)) {
+          document.querySelector<HTMLInputElement>('.pagefind-ui__search-input')?.focus();
+          return;
+        }
+        window.location.href = `${BASE}/search/?focus=1`;
+      }
+
+      document.addEventListener('keydown', (e) => {
+        if (e.defaultPrevented || e.isComposing) return;
+        if (e.key !== '/' && !((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) return;
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT' ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        openSearch();
+      });
+    </script>
   </body>
 </html>

@@ -1,6 +1,7 @@
 ---
 /**
  * 文章目录（TOC）。headings 由 Astro 渲染管线自动提供（含 slug）。
+ * 同一页面可能渲染两份（移动端折叠块 + 桌面侧栏），滚动高亮由底部脚本同步处理。
  */
 export interface TocHeading {
   depth: number;
@@ -18,7 +19,7 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
 
 {
   items.length > 0 && (
-    <nav class="toc" aria-label="目录">
+    <nav class="toc" aria-label="目录" data-toc>
       <h2 class="text-sm font-semibold text-ink-2 mb-2">目录</h2>
       <ul class="space-y-1.5 text-sm border-l border-line">
         {items.map((h) => (
@@ -39,3 +40,57 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
     </nav>
   )
 }
+
+<script>
+  // 目录滚动定位（scrollspy）：IntersectionObserver 监听标题进入「头部窄带」，
+  // 把当前章节链接标记为 aria-current="location"，高亮样式由 global.css 的 .toc 规则提供。
+  const navs = document.querySelectorAll<HTMLElement>('[data-toc]');
+  if (navs.length > 0 && 'IntersectionObserver' in window) {
+    const linksBySlug = new Map<string, HTMLAnchorElement[]>();
+    navs.forEach((nav) => {
+      // 目录 href 含完整路径（pathname + #slug），不能用 [href^="#"] 匹配，
+      // 以浏览器解析出的 a.hash 为准
+      nav.querySelectorAll<HTMLAnchorElement>('a').forEach((a) => {
+        if (!a.hash) return;
+        const slug = decodeURIComponent(a.hash.slice(1));
+        const list = linksBySlug.get(slug) ?? [];
+        list.push(a);
+        linksBySlug.set(slug, list);
+      });
+    });
+
+    const setActive = (slug: string) => {
+      linksBySlug.forEach((links, s) => {
+        for (const a of links) {
+          if (s === slug) a.setAttribute('aria-current', 'location');
+          else a.removeAttribute('aria-current');
+        }
+      });
+    };
+
+    const headingEls = [...linksBySlug.keys()]
+      .map((slug) => document.getElementById(slug))
+      .filter((el): el is HTMLElement => el !== null);
+
+    // rootMargin 收窄为 header 下方的窄带：标题进入视为当前章节；
+    // 离开窄带后保持上一个当前值，避免长段落间高亮闪烁
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) setActive(entry.target.id);
+        }
+      },
+      { rootMargin: '-80px 0px -70% 0px' },
+    );
+    headingEls.forEach((el) => observer.observe(el));
+
+    // 移动端折叠目录：点击条目跳转后收起，避免占住正文起点
+    document.querySelectorAll<HTMLDetailsElement>('[data-toc-mobile]').forEach((details) => {
+      details.addEventListener('click', (e) => {
+        const target = e.target as HTMLElement;
+        const anchor = target.closest('a');
+        if (anchor?.hash) details.open = false;
+      });
+    });
+  }
+</script>

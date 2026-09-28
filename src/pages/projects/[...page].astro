@@ -1,0 +1,44 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ProjectCard from '@/components/ProjectCard.astro';
+import EmptyState from '@/components/EmptyState.astro';
+import Pagination from '@/components/Pagination.astro';
+import type { CollectionEntry } from 'astro:content';
+import type { Page, PaginateFunction } from 'astro';
+import { getVisibleEntries } from '@/lib/content';
+
+export async function getStaticPaths({ paginate }: { paginate: PaginateFunction }) {
+  const entries = (await getVisibleEntries('projects')).sort((a, b) => {
+    if (a.data.featured !== b.data.featured) return a.data.featured ? -1 : 1;
+    return b.data.date.valueOf() - a.data.date.valueOf();
+  });
+  return paginate(entries, { pageSize: 20 });
+}
+
+const { page } = Astro.props as { page: Page<CollectionEntry<'projects'>> };
+---
+
+<BaseLayout
+  title="项目"
+  description="我在构建与关注的开源项目：手工说明 + GitHub 实时数据（Stars、Forks、最近更新）。"
+>
+  <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-ink">项目</h1>
+      <p class="mt-2 text-ink-2">
+        项目卡片的 Stars、Forks 等数据每日由
+        <span class="text-ink-3">GitHub Actions</span> 自动刷新缓存。
+      </p>
+    </header>
+    {
+      page.data.length > 0 ? (
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {page.data.map((entry) => <ProjectCard entry={entry} />)}
+        </div>
+      ) : (
+        <EmptyState description="收录第一个项目后会出现在这里。" />
+      )
+    }
+    <Pagination page={page} />
+  </div>
+</BaseLayout>

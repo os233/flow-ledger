@@ -1,11 +1,20 @@
 ---
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import FeedCard from '@/components/FeedCard.astro';
+import EmptyState from '@/components/EmptyState.astro';
+import Pagination from '@/components/Pagination.astro';
+import type { Page, PaginateFunction } from 'astro';
+import type { FeedEntry } from '@/lib/content';
 import { getVisibleEntries } from '@/lib/content';
 
-const entries = (await getVisibleEntries('archives')).sort(
-  (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
-);
+export async function getStaticPaths({ paginate }: { paginate: PaginateFunction }) {
+  const entries = (await getVisibleEntries('archives')).sort(
+    (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+  );
+  return paginate(entries, { pageSize: 20 });
+}
+
+const { page } = Astro.props as { page: Page<FeedEntry> };
 ---
 
 <BaseLayout
@@ -20,9 +29,16 @@ const entries = (await getVisibleEntries('archives')).sort(
         <a class="text-link hover:underline" href="#来源说明">原始链接与抓取时间</a>。
       </p>
     </header>
-    <div class="flex flex-col gap-4">
-      {entries.map((entry) => <FeedCard entry={entry} />)}
-    </div>
+    {
+      page.data.length > 0 ? (
+        <div class="flex flex-col gap-4">
+          {page.data.map((entry) => <FeedCard entry={entry} />)}
+        </div>
+      ) : (
+        <EmptyState description="第一条对话归档后会出现在这里。" />
+      )
+    }
+    <Pagination page={page} />
     <section
       id="来源说明"
       class="mt-10 scroll-mt-20 rounded-card border border-line bg-muted/50 p-5"

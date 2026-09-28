@@ -1,0 +1,40 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import FeedCard from '@/components/FeedCard.astro';
+import EmptyState from '@/components/EmptyState.astro';
+import Pagination from '@/components/Pagination.astro';
+import type { Page, PaginateFunction } from 'astro';
+import type { FeedEntry } from '@/lib/content';
+import { getVisibleEntries } from '@/lib/content';
+
+export async function getStaticPaths({ paginate }: { paginate: PaginateFunction }) {
+  const entries = (await getVisibleEntries('posts')).sort(
+    (a, b) => b.data.date.valueOf() - a.data.date.valueOf(),
+  );
+  return paginate(entries, { pageSize: 20 });
+}
+
+const { page } = Astro.props as { page: Page<FeedEntry> };
+---
+
+<BaseLayout
+  title="博客"
+  description="整理过的正式文章：从流水般的速记中沉淀下来的想法。"
+>
+  <div class="mx-auto w-full max-w-3xl px-4 sm:px-6 py-10">
+    <header class="mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-ink">博客</h1>
+      <p class="mt-2 text-ink-2">值得被搜索和引用的完整文章。</p>
+    </header>
+    {
+      page.data.length > 0 ? (
+        <div class="flex flex-col gap-4">
+          {page.data.map((entry) => <FeedCard entry={entry} />)}
+        </div>
+      ) : (
+        <EmptyState description="第一篇文章发布后会出现在这里。" />
+      )
+    }
+    <Pagination page={page} />
+  </div>
+</BaseLayout>

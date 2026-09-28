@@ -1,0 +1,30 @@
+---
+/**
+ * 空状态占位：列表无内容时给出说明，避免渲染成空白区域。
+ */
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = '这里还没有内容', description = '内容发布后会出现在这里。' } = Astro.props;
+---
+
+<div class="rounded-card border border-dashed border-line px-6 py-12 text-center">
+  <svg
+    class="mx-auto h-8 w-8 text-ink-3"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M8 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z"></path>
+    <path d="M14 3v6h6"></path>
+    <path d="M8.5 13h7M8.5 17h4.5"></path>
+  </svg>
+  <p class="mt-3 text-sm font-medium text-ink-2">{title}</p>
+  <p class="mt-1 text-sm text-ink-3">{description}</p>
+</div>
