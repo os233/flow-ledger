@@ -25,7 +25,7 @@ import { marked } from 'marked';
 import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags } from './lib/content-io.mjs';
 
 const require = createRequire(import.meta.url);
-const archiver = require('archiver'); // archiver 为 CJS 包，无可靠 ESM 命名导出
+const { ZipArchive } = require('archiver'); // archiver 8 起导出类集合，ZIP 需用 ZipArchive 构造
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CONTENT_DIR = path.join(ROOT, 'content');
@@ -173,7 +173,7 @@ async function exportAll(outDir, opts) {
   const zipPath = path.join(outDir, `flow-ledger-content-${stamp}.zip`);
   await mkdir(outDir, { recursive: true });
   const output = createWriteStream(zipPath);
-  const archive = archiver('zip', { zlib: { level: 9 } });
+  const archive = new ZipArchive({ zlib: { level: 9 } });
   archive.pipe(output);
   for (const e of included) {
     archive.append(await readFile(e.file), { name: path.relative(ROOT, e.file).replace(/\\/g, '/') });
