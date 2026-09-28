@@ -46,9 +46,9 @@ P2 完整范围（Worker 在线解析、逐平台适配器、LLM 增强）按计
 | 批次 | 内容 | 验收锚点 |
 | --- | --- | --- |
 | B1 ✅（2026-09-28） | 首批门槛文档（本文） | 裁剪决策与启动条件已记录 |
-| B2 | `npm run archive` 手工归档脚本：MD/HTML 输入识别、完整 archives frontmatter、HTML→MD、敏感信息扫描、可选原始快照 | Markdown 与 HTML 两个样例走通，生成文件通过构建期 schema 校验，扫描告警命中 |
-| B3 | 文档同步：content-guide 归档流程、architecture 阶段状态、README 命令表 | 文档与实现一致，不把规划写成已实现 |
-| B4 | 首批验收：可见性回归 + 验收记录 | draft 归档不出现在 dist/RSS/sitemap；记录见 [p2-acceptance.md](p2-acceptance.md) |
+| B2 ✅（2026-09-28） | `npm run archive` 手工归档脚本：MD/HTML 输入识别、完整 archives frontmatter、HTML→MD、敏感信息扫描、可选原始快照 | Markdown 与 HTML 两个样例走通，生成文件通过构建期 schema 校验，扫描告警命中 |
+| B3 ✅（2026-09-28） | 文档同步：content-guide 归档流程、architecture 阶段状态、README 命令表 | 文档与实现一致，不把规划写成已实现 |
+| B4 ✅（2026-09-28） | 首批验收：可见性回归 + 验收记录 | draft 归档不出现在 dist/RSS/sitemap；记录见 [p2-acceptance.md](p2-acceptance.md) |
 
 ## 完成定义（DoD）
 

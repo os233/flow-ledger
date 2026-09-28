@@ -24,7 +24,7 @@ public/media/   # 图片与附件
 
 ## 本地开发
 
-推荐 Node.js 24 LTS（CI 与部署使用 Node 24，见计划书第 3 节「版本与运行时基线」；Node 22 亦可，仅使用仍受上游支持的 LTS 版本）。
+推荐 Node.js 24 LTS（CI 与部署使用 Node 24，见计划书第 3 节「版本与运行时基线」；Node 22 须 ≥ 22.12——`npm run export` 经 require(esm) 加载 archiver 8，仅使用仍受上游支持的 LTS 版本）。
 
 > PowerShell 用户：首次运行 `npm` 若报「无法加载文件 npm.ps1，因为在此系统上禁止运行脚本」，执行一次
 > `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` 即可（仅当前用户，无需管理员）；或改用 `npm.cmd run ...` / Git Bash。
@@ -34,10 +34,10 @@ npm install        # 安装依赖
 npm run dev        # 启动开发服务器 http://127.0.0.1:4321/flow-ledger/
 npm run build      # 类型检查 + 产出静态站点到 dist/
 npm run preview    # 本地预览构建产物
-npm run new        # 新建内容：npm run new -- posts "标题" --slug my-post --tags a,b
-npm run archive    # AI 对话手工归档：npm run archive -- 对话.md --source-url <分享链接>
-npm run import     # 导入内容：npm run import -- <文件或目录> --type posts
-npm run export     # 导出内容：npm run export -- <slug> | --all [--with-drafts]
+npm run new        # 新建内容（P1）：npm run new -- posts "标题" --slug my-post --tags a,b
+npm run archive    # AI 对话手工归档（P2 首批）：npm run archive -- 对话.md --source-url <分享链接>
+npm run import     # 导入内容（P1）：npm run import -- <文件或目录> --type posts
+npm run export     # 导出内容（P1）：npm run export -- <slug> | --all [--with-drafts]
 ```
 
 > 开发/预览服务器显式绑定 `127.0.0.1`：部分环境下 `localhost` 会被解析为 IPv6（`[::1]`）且浏览器不回退，导致 `ERR_CONNECTION_REFUSED`。访问时请用 `127.0.0.1` 地址。
@@ -58,7 +58,7 @@ npm run fetch:github
 
 | 工作流 | 触发 | 作用 |
 | --- | --- | --- |
-| CI | push / PR | 类型检查、构建、内部链接与内容可见性检查 |
+| CI | PR | 类型检查、构建、内部链接与内容可见性检查 |
 | Deploy | push main | 构建并部署到 GitHub Pages |
 | PR Preview | PR 打开/更新/关闭 | 预览部署到 `preview/pr-<编号>/` 子路径并评论链接；关闭时自动清理 |
 | Refresh GitHub data | 每日定时 | 刷新项目卡片的 Stars/Forks 等缓存数据 |

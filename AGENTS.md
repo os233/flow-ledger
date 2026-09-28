@@ -4,7 +4,7 @@
 
 - 项目需求、分期规划与技术决策以仓库外计划书 `D:\project\src\flow-ledger计划书\flow-ledger-development-plan.md` 为准。开始开发任务前先阅读；计划书与代码/文档冲突时，暂停冲突部分并向用户说明差异、确认依据后再改。
 - 同时阅读 `README.md`、`docs/architecture.md`、`docs/content-guide.md` 中与任务相关的部分。项目总览见根目录 `programs.md`。
-- 动手前确认当前阶段。当前仓库架构基线是 **P0：可发布基础站**；P1（写作导入导出）、P2（AI 分享解析归档）、P3（主题市场）属于后续规划。不要把规划能力写成已实现功能。
+- 动手前确认当前阶段。当前仓库已完成 **P0：可发布基础站** 与 **P1：写作导入导出**（验收见 `docs/p0-acceptance.md`、`docs/p1-acceptance.md`），并已实施 **P2 首批：手工归档流**（见 `docs/p2-acceptance.md`）；P2 其余能力（Worker 在线解析、适配器、LLM 增强）与 P3（主题市场）属于后续规划。不要把规划能力写成已实现功能。
 
 ## 项目定位与关键事实
 
@@ -12,7 +12,7 @@ Flow Ledger 是“先记下、再整理、可长期保存”的个人数字花�
 
 - `content/{notes,archives,projects,posts,pages}` 是唯一内容源；元数据由 Astro Content Collections 与 Zod 校验。
 - `status: private` 的条目不得生成页面，也不得进入列表、RSS 或 sitemap；不可用前端隐藏替代构建期过滤。`draft` 在生产构建不可见，可在本地开发预览。
-- 当前技术栈：Astro 7、TypeScript、Markdown/MDX、Tailwind CSS 4（`@tailwindcss/vite`）、RSS、sitemap、Shiki。部署目标是 GitHub Pages，项目基础路径 `/flow-ledger/`。
+- 当前技术栈：Astro 7、TypeScript、Markdown/MDX、Tailwind CSS 4（`@tailwindcss/vite`）、RSS、sitemap、Shiki、Pagefind 搜索（P1 接入）。部署目标是 GitHub Pages，项目基础路径 `/flow-ledger/`。
 - 当前实现与模块、内容字段和脚本以 `docs/architecture.md`、`docs/content-guide.md`、源码及 `package.json` 为准。
 - `main` 始终保持可发布；功能使用 `feat/<name>` 分支并通过 PR 合并。提交信息遵循 Conventional Commits（如 `feat:`、`fix:`、`docs:`、`chore:`）。
 - 代码采用 MIT；内容采用 CC BY 4.0 或保留版权；第三方主题、图片等保留原许可证与署名。
@@ -59,8 +59,14 @@ AI 代理作为协作开发者，负责理解任务、定位代码和规范、�
 npm install        # 安装依赖
 npm run dev        # 本地开发服务器
 npm run check      # Astro 同步与类型检查
-npm run build      # 检查并构建到 dist/
+npm run build      # 检查并构建到 dist/（含 Pagefind 索引）
 npm run preview    # 预览构建产物
+npm run new        # 新建内容（P1）
+npm run archive    # AI 对话手工归档（P2 首批）
+npm run import     # 导入内容为 Markdown（P1）
+npm run export     # 导出单篇或全站 ZIP（P1）
+npm run check:links      # 构建产物内部链接检查（需先 build）
+npm run check:visibility # private/draft 不进产物的回归检查（需先 build）
 npm run fetch:github # 刷新 GitHub 项目缓存
 ```
 
