@@ -12,7 +12,7 @@ Flow Ledger 是“先记下、再整理、可长期保存”的个人数字花�
 
 - `content/{notes,archives,projects,posts,pages}` 是唯一内容源；元数据由 Astro Content Collections 与 Zod 校验。
 - `status: private` 的条目不得生成页面，也不得进入列表、RSS 或 sitemap；不可用前端隐藏替代构建期过滤。`draft` 在生产构建不可见，可在本地开发预览。
-- 当前技术栈：Astro 5、TypeScript、Markdown/MDX、Tailwind CSS 4（`@tailwindcss/vite`）、RSS、sitemap、Shiki。部署目标是 GitHub Pages，项目基础路径 `/flow-ledger/`。
+- 当前技术栈：Astro 7、TypeScript、Markdown/MDX、Tailwind CSS 4（`@tailwindcss/vite`）、RSS、sitemap、Shiki。部署目标是 GitHub Pages，项目基础路径 `/flow-ledger/`。
 - 当前实现与模块、内容字段和脚本以 `docs/architecture.md`、`docs/content-guide.md`、源码及 `package.json` 为准。
 - `main` 始终保持可发布；功能使用 `feat/<name>` 分支并通过 PR 合并。提交信息遵循 Conventional Commits（如 `feat:`、`fix:`、`docs:`、`chore:`）。
 - 代码采用 MIT；内容采用 CC BY 4.0 或保留版权；第三方主题、图片等保留原许可证与署名。
