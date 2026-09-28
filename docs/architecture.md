@@ -18,9 +18,9 @@ flow-ledger/
     content.config.ts       # 内容集合定义 + Zod schema
     data/github-cache.json  # GitHub 项目数据构建期缓存（提交进仓库）
     layouts/                # BaseLayout（站点骨架）、ArticleLayout（详情页）
-    components/             # Header / MobileDrawer / ThemeToggle / FeedCard / ProjectCard / Toc / Footer
-    lib/                    # site.ts（URL/格式化）、content.ts（可见性/聚合）
-    pages/                  # 路由：四类内容列表+详情、tags、about、404、rss.xml、robots.txt
+    components/             # Header / MobileDrawer / ThemeToggle / FeedCard / ProjectCard / Toc / Footer / EmptyState / Pagination / CodeCopy
+    lib/                    # site.ts（URL/格式化/导航激活）、content.ts（可见性/聚合）
+    pages/                  # 路由：四类内容分页列表（[...page]，每页 20）+详情、tags（标签页同样分页）、about、404、rss.xml、robots.txt
     styles/global.css       # 设计令牌（CSS 变量）+ Tailwind
 ```
 
@@ -31,7 +31,7 @@ flow-ledger/
 | 站点生成 | Astro 7 + TypeScript（strict） |
 | 内容 | Markdown / MDX + YAML Frontmatter，Astro Content Collections + Zod 校验 |
 | 样式 | Tailwind CSS 4 + CSS 变量设计令牌 |
-| 搜索 | Pagefind（P1 已接入：build 后建索引，CJK extended 构建，主题令牌见 `global.css`） |
+| 搜索 | Pagefind（P1 已接入：build 后建索引，CJK extended 构建，主题令牌见 `global.css`；UI 文案汉化，搜索页/404 整页排除出索引，全站 `/` 或 Ctrl+K 快捷键唤起） |
 | 部署 | GitHub Actions → GitHub Pages（项目站点 `/flow-ledger/`） |
 | GitHub 数据 | REST API + 构建期缓存（`github-cache.json`，Actions 每日刷新并提交） |
 

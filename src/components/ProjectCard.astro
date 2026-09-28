@@ -50,7 +50,8 @@ const description = entry.data.summary ?? cached?.description ?? '暂无简介';
       href={repoUrl}
       class="shrink-0 rounded-pill border border-line px-2.5 py-1 text-xs text-ink-2 hover:text-accent hover:border-accent transition-colors"
       rel="noopener noreferrer"
-      aria-label={`在 GitHub 上查看 ${repo}`}
+      target="_blank"
+      aria-label={`在 GitHub 上查看 ${repo}（在新标签页打开）`}
     >
       {repo}
     </a>
@@ -62,7 +63,7 @@ const description = entry.data.summary ?? cached?.description ?? '暂无简介';
     {
       typeof cached?.language === 'string' && (
         <div class="flex items-center gap-1">
-          <span class="h-2.5 w-2.5 rounded-full bg-accent" aria-hidden="true" />
+          <span class="h-2.5 w-2.5 rounded-pill bg-accent" aria-hidden="true" />
           <dt class="sr-only">语言</dt>
           <dd>{cached.language}</dd>
         </div>
@@ -104,6 +105,17 @@ const description = entry.data.summary ?? cached?.description ?? '暂无简介';
         </div>
       )
     }
-    {homepage && <a href={homepage} class="text-link hover:underline" rel="noopener noreferrer">主页 ↗</a>}
+    {
+      homepage && (
+        <a
+          href={homepage}
+          class="text-link hover:underline"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          主页 ↗<span class="sr-only">（在新标签页打开）</span>
+        </a>
+      )
+    }
   </dl>
 </article>

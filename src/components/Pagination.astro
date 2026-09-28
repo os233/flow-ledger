@@ -1,0 +1,47 @@
+---
+/**
+ * 分页导航：上一页 / 页码 / 下一页。
+ * 直接接收 Astro paginate() 返回的 page 对象；仅一页时不渲染。
+ */
+import type { Page } from 'astro';
+
+interface Props {
+  page: Page<unknown>;
+}
+
+const { page } = Astro.props;
+const { currentPage, lastPage, url } = page;
+
+const linkClass =
+  'inline-flex items-center rounded-pill border border-line px-4 py-2 text-sm text-ink-2 transition-colors hover:border-ink-3 hover:text-ink';
+const disabledClass =
+  'inline-flex items-center rounded-pill border border-line px-4 py-2 text-sm text-ink-3 opacity-50';
+---
+
+{
+  lastPage > 1 && (
+    <nav class="mt-10 flex items-center justify-between gap-4" aria-label="分页">
+      {url.prev ? (
+        <a href={url.prev} rel="prev" class={linkClass}>
+          ← 上一页
+        </a>
+      ) : (
+        <span class={disabledClass} aria-hidden="true">
+          ← 上一页
+        </span>
+      )}
+      <span class="text-sm text-ink-3">
+        第 {currentPage} / {lastPage} 页
+      </span>
+      {url.next ? (
+        <a href={url.next} rel="next" class={linkClass}>
+          下一页 →
+        </a>
+      ) : (
+        <span class={disabledClass} aria-hidden="true">
+          下一页 →
+        </span>
+      )}
+    </nav>
+  )
+}
