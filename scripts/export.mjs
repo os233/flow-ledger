@@ -22,7 +22,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { marked } from 'marked';
-import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags } from './lib/content-io.mjs';
+import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, parseArgs } from './lib/content-io.mjs';
 
 const require = createRequire(import.meta.url);
 const { ZipArchive } = require('archiver'); // archiver 8 起导出类集合，ZIP 需用 ZipArchive 构造
@@ -32,20 +32,13 @@ const CONTENT_DIR = path.join(ROOT, 'content');
 const MEDIA_DIR = path.join(ROOT, 'public', 'media');
 const TYPES = ['notes', 'archives', 'projects', 'posts', 'pages'];
 
-function parseArgs(argv) {
-  const opts = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith('--')) {
-      const next = argv[i + 1];
-      if (next === undefined || next.startsWith('--')) opts[a.slice(2)] = true;
-      else {
-        opts[a.slice(2)] = next;
-        i++;
-      }
-    } else opts._.push(a);
+/** 递归收集目录下的 Markdown（与内容集合的 glob 语义一致，含子目录） */
+async function walkMd(dir, out) {
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) await walkMd(full, out);
+    else if (/\.(md|mdx)$/i.test(entry.name)) out.push(full);
   }
-  return opts;
 }
 
 /** 遍历 content/，解析每篇的 frontmatter */
@@ -53,22 +46,30 @@ async function collectEntries() {
   const entries = [];
   for (const type of TYPES) {
     const dir = path.join(CONTENT_DIR, type);
-    let files;
+    const files = [];
     try {
-      files = await readdir(dir);
+      await walkMd(dir, files);
     } catch {
       continue;
     }
-    for (const name of files.filter((f) => /\.(md|mdx)$/i.test(f))) {
-      const full = path.join(dir, name);
+    for (const full of files) {
+      // id 先于解析告警使用，必须在前声明（Astro glob loader 语义：相对集合目录路径去扩展名）
+      const id = path.relative(dir, full).replace(/\\/g, '/').replace(/\.(md|mdx)$/i, '');
       const { text } = await readDecoded(full);
       const split = splitFrontmatter(text);
-      const fm = split.frontmatter !== null ? parseSimpleFrontmatter(split.frontmatter).data : {};
+      const parsed = split.frontmatter !== null ? parseSimpleFrontmatter(split.frontmatter) : { data: {}, broken: false };
+      if (parsed.broken) {
+        console.warn(`  ⚠ frontmatter 无法完整解析，按非公开内容处理（导出需 --with-drafts/--with-private）：${type}/${id}`);
+      }
+      const fm = parsed.data;
+      // 可见性与构建期语义对齐：frontmatter 解析失败或其余集合缺 status 的条目
+      // 不得默认按 public 导出（Zod schema 默认为 draft）；pages 无 status 概念，恒为 public
+      const status = parsed.broken ? 'draft' : (fm.status ?? (type === 'pages' ? 'public' : 'draft'));
       entries.push({
         type,
-        id: name.replace(/\.(md|mdx)$/i, ''),
+        id,
         file: full,
-        status: fm.status ?? 'public',
+        status,
         fm,
         body: split.body,
       });
@@ -77,27 +78,42 @@ async function collectEntries() {
   return entries;
 }
 
-/** 把正文里的 /media/... 站内绝对路径改为相对路径并收集附件 */
+/** 把正文里的 /media/... 站内绝对路径改为相对路径并收集附件（覆盖 Markdown 圆括号与 HTML 属性两种形态） */
 async function extractMedia(body, destDir) {
-  const mediaRoot = path.join(destDir, 'media');
-  const refs = [...body.matchAll(/\((\/media\/[^)\s]+)\)/g)].map((m) => m[1]);
-  const copied = new Set();
+  const mdRefs = [...body.matchAll(/\((\/media\/[^)\s]+)(?:\s+"[^"]*")?\)/g)].map((m) => m[1]);
+  const attrRefs = [...body.matchAll(/\s(?:src|href)="(\/media\/[^"]+)"/g)].map((m) => m[1]);
+  const refs = [...new Set([...mdRefs, ...attrRefs])];
+  const copied = new Map(); // 原始引用 → 导出目录内相对路径
   for (const ref of refs) {
     if (copied.has(ref)) continue;
-    const src = path.join(ROOT, 'public', ref.replace(/^\//, ''));
+    // 引用是 URL 编码形式（如 my%20pic.png），先解码再探测真实文件
+    let decoded = ref;
+    try {
+      decoded = decodeURIComponent(ref);
+    } catch {
+      // 畸形转义序列按原文处理
+    }
+    const src = path.join(ROOT, 'public', decoded.replace(/^\//, ''));
     try {
       await stat(src);
-      await mkdir(mediaRoot, { recursive: true });
-      await copyFile(src, path.join(mediaRoot, path.basename(ref)));
-      copied.add(ref);
+      // 定位文件用解码路径；改写正文保留原始编码形式——文件名含空格时
+      // 裸空格在 Markdown 圆括号语法里是非法的（会被解析成标题）
+      const relPath = ref.replace(/^\//, '');
+      const dest = path.join(destDir, ...decoded.replace(/^\//, '').split('/'));
+      await mkdir(path.dirname(dest), { recursive: true });
+      await copyFile(src, dest);
+      copied.set(ref, relPath);
     } catch {
       console.warn(`  ⚠ 附件缺失，保留原路径：${ref}`);
     }
   }
-  for (const ref of copied) {
-    body = body.split(`(${ref})`).join('(media/' + path.basename(ref) + ')');
+  for (const [ref, relPath] of copied) {
+    // 圆括号形式（含可选标题）与 HTML 属性形式分别改写
+    body = body.split(`(${ref})`).join(`(${relPath})`);
+    body = body.split(`(${ref} `).join(`(${relPath} `);
+    body = body.split(`"${ref}"`).join(`"${relPath}"`);
   }
-  return { body, copied: [...copied] };
+  return { body, copied: [...copied.keys()] };
 }
 
 function frontmatterForExport(e) {
@@ -108,7 +124,8 @@ function frontmatterForExport(e) {
   if (e.fm.date) lines.push(`date: ${e.fm.date}`, `pubDate: ${e.fm.date}`); // pubDate：Astro blog 模板别名字段
   if (e.fm.updated) lines.push(`updated: ${e.fm.updated}`);
   if (e.type !== 'pages') {
-    lines.push(`tags: [${parseTags(e.fm.tags).join(', ')}]`);
+    // 标签重新引号序列化：原值含逗号/引号时裸值会产出损坏 YAML
+    lines.push(`tags: [${parseTags(e.fm.tags).map((t) => `"${yamlEscape(t)}"`).join(', ')}]`);
     // description 始终导出：Astro blog 模板 schema 中为必填
     lines.push(`description: "${yamlEscape(e.fm.summary ?? '')}"`);
     if (e.fm.summary) lines.push(`summary: "${yamlEscape(e.fm.summary)}"`);
@@ -147,7 +164,7 @@ async function exportSingle(e, outDir, format) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${(e.fm.title ?? e.id).replace(/</g, '&lt;')}</title>
+<title>${(e.fm.title ?? e.id).replace(/&/g, '&amp;').replace(/</g, '&lt;')}</title>
 <style>${HTML_CSS}</style>
 </head>
 <body>
@@ -174,6 +191,12 @@ async function exportAll(outDir, opts) {
   await mkdir(outDir, { recursive: true });
   const output = createWriteStream(zipPath);
   const archive = new ZipArchive({ zlib: { level: 9 } });
+  // 不监听 error 会让目录缺失等问题变成 uncaughtException；finalize 只保证归档封装完成，还需等输出流落盘
+  const flushed = new Promise((resolve, reject) => {
+    output.on('close', resolve);
+    output.on('error', reject);
+    archive.on('error', reject);
+  });
   archive.pipe(output);
   for (const e of included) {
     archive.append(await readFile(e.file), { name: path.relative(ROOT, e.file).replace(/\\/g, '/') });
@@ -203,6 +226,7 @@ async function exportAll(outDir, opts) {
     { name: 'EXPORT-README.md' },
   );
   await archive.finalize();
+  await flushed;
   console.log(`  ✓ 全站内容包 → ${path.relative(ROOT, zipPath)}（${included.length} 篇，排除 ${excluded} 篇非公开内容）`);
 }
 
@@ -221,9 +245,15 @@ async function main() {
     console.error('用法: npm run export -- <slug> [--format md|html] | npm run export -- --all [--with-drafts] [--with-private]');
     process.exit(1);
   }
-  const e = entries.find((x) => x.id === slug || `${x.type}/${x.id}` === slug);
+  // type/slug 精确匹配优先；裸 slug 重名时（notes/foo 与 posts/foo）要求消歧
+  const matches = entries.filter((x) => x.id === slug || `${x.type}/${x.id}` === slug);
+  const e = matches.find((x) => `${x.type}/${x.id}` === slug) ?? (matches.length === 1 ? matches[0] : undefined);
   if (!e) {
-    console.error(`未找到内容 "${slug}"。可用 slug：\n  ` + entries.map((x) => `${x.type}/${x.id} (${x.status})`).join('\n  '));
+    if (matches.length > 1) {
+      console.error(`"${slug}" 在多个类型下重名，请用 type/slug 形式指定：\n  ` + matches.map((x) => `${x.type}/${x.id} (${x.status})`).join('\n  '));
+    } else {
+      console.error(`未找到内容 "${slug}"。可用 slug：\n  ` + entries.map((x) => `${x.type}/${x.id} (${x.status})`).join('\n  '));
+    }
     process.exit(1);
   }
   // 可见性红线：非 public 内容导出需显式开关

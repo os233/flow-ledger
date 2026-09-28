@@ -12,8 +12,11 @@ const links = [
 ];
 
 const path = Astro.url.pathname;
+// 生产构建的目录式页面 pathname 无尾斜杠（首页为 /flow-ledger），dev 带尾斜杠；
+// 归一化后再比较，两种模式高亮行为一致
+const norm = (p: string) => (p.length > 1 ? p.replace(/\/+$/, '') : p);
 const isActive = (href: string) =>
-  href === withBase('/') ? path === withBase('/') : path.startsWith(href);
+  href === withBase('/') ? norm(path) === norm(withBase('/')) : path.startsWith(norm(href));
 
 /** Header / Feed / Card / Article / Footer：与 P3 主题 slot 命名对齐 */
 const nav = links.map((l) => ({ ...l, active: isActive(l.href) }));---

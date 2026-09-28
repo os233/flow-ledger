@@ -24,6 +24,15 @@ async function* walk(dir) {
   }
 }
 
+/** 畸形转义序列（如 %zz）decode 会抛异常，按原文处理 */
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function resolveTarget(fromHtml, href) {
   const [withoutHash] = href.split('#');
   const withoutQuery = withoutHash.split('?')[0];
@@ -39,9 +48,9 @@ function resolveTarget(fromHtml, href) {
         break;
       }
     }
-    return path.join(DIST, decodeURIComponent(rel));
+    return path.join(DIST, safeDecode(rel));
   }
-  const target = path.resolve(path.dirname(fromHtml), decodeURIComponent(withoutQuery));
+  const target = path.resolve(path.dirname(fromHtml), safeDecode(withoutQuery));
   const rel = path.relative(DIST, target);
   if (rel.startsWith('..')) return null; // 越出 dist 的路径不做判断
   return target;
@@ -70,10 +79,10 @@ const broken = [];
 
 for (const file of htmlFiles) {
   const html = await readFile(file, 'utf8');
-  const attrs = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map((m) => m[1]);
+  // 前置空白边界：排除 data-src 之类的其他属性被误当链接
+  const attrs = [...html.matchAll(/\s(?:href|src)="([^"]+)"/g)].map((m) => m[1]);
   for (const href of attrs) {
     if (
-      seen.has(href) ||
       href.startsWith('http://') ||
       href.startsWith('https://') ||
       href.startsWith('mailto:') ||
@@ -82,8 +91,12 @@ for (const file of htmlFiles) {
     ) {
       continue;
     }
-    seen.add(href);
     const target = resolveTarget(file, href);
+    // 去重键用解析结果而非原始 href：相对链接的解析依赖所在目录，
+    // 按原文字符串去重会让 A 页面解析成功的写法掩盖 B 页面同写法的断链
+    const key = target ?? `unresolvable:${href}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
     if (target && !(await exists(target))) {
       broken.push({ from: path.relative(DIST, file), href });
     }

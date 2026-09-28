@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write # 提交刷新后的缓存文件
+  actions: write  # 缓存更新后触发 Deploy 工作流
 
 concurrency:
   group: refresh-github-data
@@ -31,9 +32,11 @@ jobs:
         run: node scripts/fetch-github-data.mjs
 
       - name: Commit refreshed cache
+        id: commit
         run: |
           if git diff --quiet src/data/github-cache.json; then
             echo "缓存无变化，跳过提交"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
           else
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -43,4 +46,13 @@ jobs:
             git fetch origin main
             git rebase origin/main
             git push
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # GITHUB_TOKEN 触发的 push 不会启动其他工作流（GitHub 官方限制），
+      # 缓存更新后必须显式 workflow_dispatch，否则刷新的数据永远不会部署上线
+      - name: Trigger site deploy
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --ref main

@@ -1,18 +1,18 @@
 {
-  "fetchedAt": "2026-09-26T08:06:47.624Z",
+  "fetchedAt": "2026-09-27T08:17:28.215Z",
   "repos": {
     "withastro/astro": {
       "description": "The web framework for content-driven websites. ⭐️ Star to support our work!",
-      "stars": 62828,
-      "forks": 3813,
+      "stars": 62850,
+      "forks": 3814,
       "language": "TypeScript",
-      "pushedAt": "2026-09-26T06:56:29Z",
+      "pushedAt": "2026-09-26T20:45:36Z",
       "htmlUrl": "https://github.com/withastro/astro"
     },
     "YYsuni/2025-blog-public": {
       "description": "开源blog，让你不写代码就开始写 blog，管理 blog 内容。无需服务器，无需费用。",
-      "stars": 1651,
-      "forks": 878,
+      "stars": 1649,
+      "forks": 877,
       "language": "TypeScript",
       "pushedAt": "2026-09-06T14:54:21Z",
       "htmlUrl": "https://github.com/YYsuni/2025-blog-public"

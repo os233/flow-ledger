@@ -1,6 +1,6 @@
 # 架构说明
 
-本文描述流水账 P0（可发布基础站）的技术架构，供后续阶段（P1 写作导入导出、P2 AI 解析归档、P3 主题市场）扩展时对照。
+本文描述流水账已实现阶段（P0 可发布基础站、P1 写作导入导出、P2 首批手工归档流）的技术架构，供后续阶段（P2 Worker 在线解析、P3 主题市场）扩展时对照。
 
 ## 总体结构
 
@@ -10,9 +10,10 @@ flow-ledger/
   content/                  # 唯一内容源：notes / archives / projects / posts / pages
   docs/                     # 架构与内容规范
   public/                   # 静态资源：media/、favicon.svg、og-default.png
-  scripts/
+  scripts/                  # 内容工具链（new-post / new-archive / import / export）
     fetch-github-data.mjs   # 拉取项目卡片数据 → src/data/github-cache.json
     check-links.mjs         # 构建产物内部链接检查
+    check-visibility.mjs    # 私密/草稿内容不进产物（含 Pagefind 索引碎片）的机器校验
   src/
     content.config.ts       # 内容集合定义 + Zod schema
     data/github-cache.json  # GitHub 项目数据构建期缓存（提交进仓库）
@@ -27,10 +28,10 @@ flow-ledger/
 
 | 层级 | 实现 |
 | --- | --- |
-| 站点生成 | Astro 5 + TypeScript（strict） |
+| 站点生成 | Astro 7 + TypeScript（strict） |
 | 内容 | Markdown / MDX + YAML Frontmatter，Astro Content Collections + Zod 校验 |
 | 样式 | Tailwind CSS 4 + CSS 变量设计令牌 |
-| 搜索 | 预留（Pagefind，P1 接入） |
+| 搜索 | Pagefind（P1 已接入：build 后建索引，CJK extended 构建，主题令牌见 `global.css`） |
 | 部署 | GitHub Actions → GitHub Pages（项目站点 `/flow-ledger/`） |
 | GitHub 数据 | REST API + 构建期缓存（`github-cache.json`，Actions 每日刷新并提交） |
 
@@ -64,22 +65,22 @@ GitHub Pages 项目站点部署在 `<owner>.github.io/flow-ledger/` 子路径下
 ### 4. GitHub 项目数据
 
 - `content/projects/*.md` 只写 `repo: owner/name` 等人工描述；
-- `scripts/fetch-github-data.mjs` 读出全部 repo 标识，调用 REST API，**合并写入** `src/data/github-cache.json`（失败仓库保留旧值）；
+- `scripts/fetch-github-data.mjs` 读出全部 repo 标识，调用 REST API，按当前内容的 repo 白名单重建写入 `src/data/github-cache.json`（失败仓库保留旧值，已移除的仓库不再残留）；
 - 构建期 `ProjectCard` 直接 import 该 JSON——构建不依赖网络；
-- `refresh-github-data.yml` 每日 UTC 02:23 刷新并提交，token 仅存在于 Actions 运行时。
+- `refresh-github-data.yml` 每日 UTC 02:23 刷新，数据有变化才提交，并在提交后显式 `workflow_dispatch` 触发 Deploy（GITHUB_TOKEN 的 push 不会自动触发其他工作流），token 仅存在于 Actions 运行时。
 
 ## CI/CD
 
 | 工作流 | 触发 | 步骤 |
 | --- | --- | --- |
-| CI | push（非 main）/ PR | npm ci → sync+check+build → check-links |
-| Deploy | push main | npm ci → build（注入 SITE/BASE_PATH）→ check-links → upload → deploy-pages |
-| Refresh GitHub data | 每日定时 / 手动 | fetch 数据 → 有变化则提交 |
+| CI | PR | npm ci → sync+check+build → check-links |
+| Deploy | push main / 手动 | npm ci → build（注入 SITE/BASE_PATH）→ check-links → upload → deploy-pages |
+| Refresh GitHub data | 每日定时 / 手动 | fetch 数据 → 有变化则提交 → 提交后触发 Deploy |
 
 仓库规范：`main` 始终可发布；功能走 `feat/<name>` 分支 PR 合并；Conventional Commits；Dependabot（npm + actions）周更。
 
 ## 后续阶段的接入点
 
-- **P1**：`scripts/` 下加导入器（MD/HTML/WXR → content/）与导出器；`docs/content-guide.md` 提供新建文章模板；Pagefind 在 build 后挂 `pagefind` 索引步骤（选用支持中日韩索引的 extended 构建）。
-- **P2**：Cloudflare Worker 独立部署，产出标准 Markdown 落到 `content/archives/`（经 PR 确认），复用 archives schema 的 `sourceUrl/provider/capturedAt/format/originalHash`。
+- **P1（已完成）**：新建/导入/导出脚本、PR 预览部署、Pagefind 索引（build 后挂 `pagefind`，CJK extended 构建），验收见 [p1-acceptance.md](p1-acceptance.md)。
+- **P2（首批已实施）**：手工归档流 `scripts/new-archive.mjs`（`npm run archive`）——粘贴的 Markdown/HTML 转换为 `content/archives/` 草稿，带完整 archives frontmatter、敏感信息正则扫描与可选原始快照（门槛与裁剪决策见 [p2-charter.md](p2-charter.md)）。Cloudflare Worker 在线解析、逐平台适配器与 LLM 增强仍为**规划**，落地时产出标准 Markdown 落到 `content/archives/`（经 PR 确认），复用 archives schema 的 `sourceUrl/provider/capturedAt/format/originalHash`。
 - **P3**：主题以 npm 包或 GitHub 仓库形式提供令牌与 slot 组件，`theme-manifest.json` 登记元数据；安装走 PR + 许可证扫描 + 构建回归。

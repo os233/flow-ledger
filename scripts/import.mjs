@@ -14,30 +14,25 @@
  *   - slug 冲突自动加 -2/-3 后缀；
  *   - 相对路径图片复制到 public/media/import-<slug>/ 并改写链接；
  *   - 每次运行生成迁移报告（标题/日期/图片/代码块/标签/损失逐项可追溯）；
- *   - frontmatter 损坏的 Markdown 跳过并记录，不做猜测性修复。
+ *   - frontmatter 损坏的 Markdown 跳过并记录，不做猜测性修复；
+ *   - Markdown 无标题时依次回退：frontmatter title → 正文首个 # 标题 → 文件名；
+ *   - archives 类型补齐 schema 必填项：sourceUrl 缺省写占位符，provider 按源 frontmatter > sourceUrl 域名推断 > unknown。
  */
 import { readFile, writeFile, mkdir, readdir, stat, copyFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import TurndownService from 'turndown';
 import { XMLParser } from 'fast-xml-parser';
-import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, normalizeDate } from './lib/content-io.mjs';
+import { readDecoded, splitFrontmatter, parseSimpleFrontmatter, yamlEscape, slugify, parseTags, normalizeDate, localDate, parseArgs } from './lib/content-io.mjs';
+import { createTurndown } from './lib/html-to-md.mjs';
+import { inferProvider } from './lib/provider.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MEDIA_DIR = path.join(ROOT, 'public', 'media');
 const CONTENT_DIR = path.join(ROOT, 'content');
 const TYPES = ['notes', 'archives', 'projects', 'posts', 'pages'];
 
-const turndown = new TurndownService({
-  headingStyle: 'atx',
-  codeBlockStyle: 'fenced',
-  bulletListMarker: '-',
-});
-// 保留 WordPress 常见但 turndown 默认丢弃的块级元素，转成报告可追溯的占位注释
-turndown.addRule('reportLosses', {
-  filter: ['iframe', 'form', 'button', 'style', 'script'],
-  replacement: (_content, node) => `\n\n<!-- 迁移损失：丢弃 <${node.nodeName.toLowerCase()}> 元素 -->\n\n`,
-});
+// 基础规则在共享工厂内；这里只叠加 WordPress 特有规则
+const turndown = createTurndown();
 turndown.addRule('wpCaption', {
   filter: (node) => node.nodeName === 'FIGURE' || node.nodeName === 'FIGCAPTION',
   replacement: (content, node) => {
@@ -46,27 +41,25 @@ turndown.addRule('wpCaption', {
   },
 });
 
-function parseArgs(argv) {
-  const opts = { _: [] };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith('--')) {
-      const next = argv[i + 1];
-      if (next === undefined || next.startsWith('--')) opts[a.slice(2)] = true;
-      else {
-        opts[a.slice(2)] = next;
-        i++;
-      }
-    } else opts._.push(a);
+const usedSlugs = new Set();
+/** 磁盘探测：pickPath 需要跨运行防覆盖，仅靠单次运行内的内存 Set 不够 */
+const fileExists = async (p) => stat(p).then(() => true).catch(() => false);
+
+/** 目录内唯一文件名：已存在则加 -2/-3 后缀，避免多篇文章共用图片目录时同名互相覆盖 */
+async function uniqueFilename(dir, name) {
+  const ext = path.extname(name);
+  const stem = ext ? name.slice(0, -ext.length) : name;
+  for (let n = 1; ; n++) {
+    const candidate = n === 1 ? name : `${stem}-${n}${ext}`;
+    if (!(await fileExists(path.join(dir, candidate)))) return candidate;
   }
-  return opts;
 }
 
-const usedSlugs = new Set();
 async function pickPath(dir, base) {
   let candidate = base;
   let n = 1;
-  while (usedSlugs.has(candidate)) {
+  // 同时检查本轮已用 slug 与磁盘上已有的同名文件：二次导入同标题内容时不覆盖上一次的 .md
+  while (usedSlugs.has(candidate) || (await fileExists(path.join(dir, `${candidate}.md`)))) {
     n++;
     candidate = `${base}-${n}`;
   }
@@ -76,14 +69,23 @@ async function pickPath(dir, base) {
 
 /** 复制一张相对图片；成功返回目标 URL，失败返回 null 并记录损失 */
 async function copyImage(src, baseFile, slug) {
-  const abs = path.resolve(path.dirname(baseFile), src.split(/[?#]/)[0]);
+  // 正文里的路径通常是 URL 编码形式（如 my%20pic.png），先解码再探测真实文件
+  let rel = src.split(/[?#]/)[0];
+  try {
+    rel = decodeURIComponent(rel);
+  } catch {
+    // 畸形转义序列按原文处理
+  }
+  const abs = path.resolve(path.dirname(baseFile), rel);
   try {
     await stat(abs);
     const imgDir = path.join(MEDIA_DIR, `import-${slug}`);
     await mkdir(imgDir, { recursive: true });
-    const dest = path.join(imgDir, path.basename(abs));
+    const name = await uniqueFilename(imgDir, path.basename(abs));
+    const dest = path.join(imgDir, name);
     await copyFile(abs, dest);
-    return `/media/import-${slug}/${path.basename(abs)}`;
+    // 逐段编码文件名：encodeURI 不处理 #/?，含这些字符的文件名会生成断链 URL
+    return `/media/import-${slug}/${encodeURIComponent(name)}`;
   } catch {
     return null;
   }
@@ -93,7 +95,9 @@ async function copyImage(src, baseFile, slug) {
 async function processImages(html, slug, notes, losses, baseFile) {
   const imgs = [...html.matchAll(/<img\b[^>]*src=["']([^"']+)["'][^>]*>/gi)];
   let copied = 0;
-  for (const m of imgs) {
+  // 倒序按 index 替换：String.replace 只换首个且相同标签会互相干扰
+  for (let i = imgs.length - 1; i >= 0; i--) {
+    const m = imgs[i];
     const src = m[1];
     if (/^(https?:)?\/\//.test(src)) {
       notes.push(`图片为绝对 URL，保留原链接：${src}`);
@@ -101,37 +105,45 @@ async function processImages(html, slug, notes, losses, baseFile) {
     }
     if (/^data:/i.test(src)) {
       losses.push(`内联 data: 图片未落盘（${src.slice(0, 40)}…）`);
-      html = html.replace(m[0], `<p>【迁移损失】内联 data: 图片未落盘</p>`);
+      html = replaceAt(html, m.index, m[0], `<p>【迁移损失】内联 data: 图片未落盘</p>`);
       continue;
     }
     const dest = await copyImage(src, baseFile, slug);
     if (dest) {
-      html = html.replace(m[0], `<img src="${dest}" alt="">`);
+      // (?<![-\w]) 避免 data-alt 之类的属性被误当 alt
+      const alt = m[0].match(/(?<![-\w])alt=["']([^"']*)["']/i)?.[1] ?? '';
+      html = replaceAt(html, m.index, m[0], `<img src="${dest}" alt="${alt.replace(/"/g, '&quot;')}">`);
       copied++;
     } else {
       losses.push(`相对图片源文件不存在，正文移除并记录：${src}`);
       // 文本段落占位：turndown 会丢弃 HTML 注释，只有元素文本能穿透转换
-      html = html.replace(m[0], `<p>【迁移损失】图片缺失：${src}</p>`);
+      html = replaceAt(html, m.index, m[0], `<p>【迁移损失】图片缺失：${src}</p>`);
     }
   }
   if (copied) notes.push(`落盘图片 ${copied} 张到 public/media/import-*/`);
   return { html, copied };
 }
 
+/** 在指定 index 处替换一段文本（matchAll 的 index 语义，倒序遍历时安全） */
+function replaceAt(text, index, target, replacement) {
+  return text.slice(0, index) + replacement + text.slice(index + target.length);
+}
+
 /** Markdown 内容里的 ![alt](src)：与 HTML 同策略，缺失即替换为损失注释 */
 async function processMarkdownImages(md, slug, notes, losses, baseFile) {
   const imgs = [...md.matchAll(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)];
   let copied = 0;
-  for (const m of imgs) {
+  for (let i = imgs.length - 1; i >= 0; i--) {
+    const m = imgs[i];
     const [, alt, src] = m;
     if (/^(https?:)?\/\//.test(src)) continue;
     const dest = await copyImage(src, baseFile, slug);
     if (dest) {
-      md = md.replace(m[0], `![${alt}](${dest})`);
+      md = replaceAt(md, m.index, m[0], `![${alt}](${dest})`);
       copied++;
     } else {
       losses.push(`相对图片源文件不存在，正文移除并记录：${src}`);
-      md = md.replace(m[0], `<!-- 迁移损失：图片缺失 ${src} -->`);
+      md = replaceAt(md, m.index, m[0], `<!-- 迁移损失：图片缺失 ${src} -->`);
     }
   }
   if (copied) notes.push(`落盘图片 ${copied} 张到 public/media/import-*/`);
@@ -153,7 +165,7 @@ async function importMarkdown(file, o) {
     if (parsed.broken) throw Object.assign(new Error('frontmatter 解析异常'), { skip: true });
     data = parsed.data;
   }
-  const title = data.title ?? path.basename(file).replace(/\.(md|markdown)$/i, '');
+  const title = data.title || split.body.match(/^#{1,6}\s+(.+)$/m)?.[1]?.trim() || path.basename(file).replace(/\.(md|markdown)$/i, '');
   const tzNote = [];
   const date = normalizeDate(data.date ?? fileDate(file), tzNote, 'frontmatter');
   notes.push(...tzNote);
@@ -161,7 +173,6 @@ async function importMarkdown(file, o) {
 
   const slug = slugify(title) || 'md';
   const img = await processMarkdownImages(split.body.trim(), slug, notes, losses, file);
-  if (img.copied) notes.push(`落盘图片 ${img.copied} 张到 public/media/import-*/`);
 
   return {
     title,
@@ -170,6 +181,7 @@ async function importMarkdown(file, o) {
     summary: data.summary ?? '',
     body: img.md,
     sourceLink: data.sourceurl ?? null,
+    provider: data.provider || null,
     notes,
     losses,
   };
@@ -182,7 +194,7 @@ async function importHtml(file, o) {
   const title =
     text.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1]?.trim() ??
     text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1]?.replace(/<[^>]+>/g, '').trim() ??
-    path.basename(file, '.html');
+    path.basename(file).replace(/\.(html?)$/i, '');
   const dateMatch =
     text.match(/<time[^>]*datetime=["']([^"']+)["']/i) ??
     text.match(/<meta[^>]+property=["']article:published_time["'][^>]+content=["']([^"']+)["']/i);
@@ -195,7 +207,6 @@ async function importHtml(file, o) {
   let html = body.replace(/<(script|style)\b[\s\S]*?<\/\1>/gi, '');
   const img = await processImages(html, slugify(title) || 'html', notes, losses, file);
   html = img.html;
-  if (img.copied) notes.push(`落盘图片 ${img.copied} 张到 public/media/import-*/`);
 
   const md = turndown.turndown(html).replace(/\n{3,}/g, '\n\n').trim();
   const tagMatches = [...text.matchAll(/<meta[^>]+property=["']article:tag["'][^>]+content=["']([^"']+)["']/gi)].map((m) => m[1]);
@@ -230,7 +241,14 @@ async function importWxr(file, o) {
       continue;
     }
     const tzNote = [];
-    const date = normalizeDate(item['wp:post_date_gmt'] ?? item.pubDate, tzNote, 'wp:post_date_gmt/pubDate');
+    // wp:post_date_gmt 是 GMT 时间但无时区标记，new Date() 会按本地时区解析导致日期偏移；
+    // 形如 YYYY-MM-DD HH:MM:SS 的值补上 Z 标记后再归一（pubDate 本身含时区信息，不受影响）
+    const rawDate = item['wp:post_date_gmt'] ?? item.pubDate;
+    const gmtDate =
+      rawDate && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(String(rawDate).trim())
+        ? `${String(rawDate).trim().replace(' ', 'T')}Z`
+        : rawDate;
+    const date = normalizeDate(gmtDate, tzNote, 'wp:post_date_gmt/pubDate');
     notes.push(...tzNote);
     const contentHtml = item['content:encoded'] ?? '';
     const img = await processImages(contentHtml, slugify(item.title ?? 'wxr') || 'wxr', notes, losses, file);
@@ -250,7 +268,7 @@ async function importWxr(file, o) {
 }
 
 function fileDate(file) {
-  return new Date().toISOString().slice(0, 10);
+  return localDate();
 }
 
 const CONTENT_EXT = /\.(md|markdown|html?|htm|xml)$/i;
@@ -349,14 +367,32 @@ async function main() {
     if (e.skipped) continue;
     const slugBase = slugify(e.title) || `${type}-item`;
     const { name, full, renamed } = await pickPath(outDir, `${e.date}-${slugBase}`);
+    // archives 的 schema 必填项：sourceUrl 缺来源链接时用 new-post 同款占位符并记入报告；
+    // provider 按源 frontmatter 显式值 > sourceUrl 域名推断 > unknown（交人工修正）
+    let provider = null;
+    if (type === 'archives') {
+      if (!e.sourceLink) {
+        e.notes.push('归档缺来源链接，sourceUrl 已用占位符，修正后再公开');
+      }
+      provider = e.provider || (e.sourceLink ? inferProvider(e.sourceLink) : null);
+      if (!provider) {
+        provider = 'unknown';
+        e.notes.push('provider 未能确定，发布前请改为实际来源');
+      }
+    }
     const fm = [
       '---',
       `title: "${yamlEscape(e.title)}"`,
       `date: ${e.date}`,
-      `tags: [${e.tags.join(', ')}]`,
+      `tags: [${e.tags.map((t) => `"${yamlEscape(t)}"`).join(', ')}]`,
       `status: ${status}`,
       `summary: "${yamlEscape(e.summary ?? '')}"`,
-      e.sourceLink ? `sourceUrl: "${yamlEscape(e.sourceLink)}"` : null,
+      e.sourceLink
+        ? `sourceUrl: "${yamlEscape(e.sourceLink)}"`
+        : type === 'archives'
+          ? 'sourceUrl: "https://example.com/share/xxx"'
+          : null,
+      type === 'archives' ? `provider: "${yamlEscape(provider)}"` : null,
       '---',
       '',
       e.body,

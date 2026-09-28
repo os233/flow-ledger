@@ -54,6 +54,7 @@ jobs:
         if: github.event.action != 'closed'
         env:
           BASE_PATH: ${{ env.PREVIEW_BASE }}
+          PUBLIC_NOINDEX: '1' # 临时预览部署，禁止搜索引擎收录
         run: |
           npm run build
           node scripts/check-links.mjs
@@ -71,6 +72,7 @@ jobs:
         if: github.event.action != 'closed'
         env:
           BASE_PATH: ${{ env.MAIN_BASE }}
+          PUBLIC_NOINDEX: '1' # 预览部署会临时替换线上站点，全产物 noindex
         run: |
           npm ci --prefix main-src
           cd main-src
@@ -91,6 +93,9 @@ jobs:
       # 关闭事件：重新构建并部署 main（无预览目录），预览随之消失
       - name: Build main site (closed cleanup deploy)
         if: github.event.action == 'closed'
+        env:
+          BASE_PATH: ${{ env.MAIN_BASE }} # 显式传入，不依赖脚本内硬编码默认值
+          # 注意：这里不设 PUBLIC_NOINDEX——cleanup 部署的是正式站点
         run: |
           npm run build
           node scripts/check-links.mjs
@@ -104,6 +109,9 @@ jobs:
         if: github.event.action != 'closed'
         env:
           DIST_DIR: ${{ github.workspace }}/artifact
+          # 两层产物的链接分别以主 base 与预览 base 开头，先剥主 base 后
+          # 剩余路径（preview/pr-N/...）恰好落在合并产物的覆盖层目录
+          BASE_PATHS: ${{ env.MAIN_BASE }},${{ env.PREVIEW_BASE }}
         run: |
           node scripts/check-links.mjs
           node scripts/check-visibility.mjs
