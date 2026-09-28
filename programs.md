@@ -47,7 +47,7 @@ Flow Ledger（流水账）是一个“先记下、再整理、可长期保存”
 - `src/components/`、`src/layouts/`：共享界面组件与页面布局。
 - `src/pages/`：内容列表、详情页、标签、静态页面、RSS 等路由。
 - `src/styles/`：全局样式及设计令牌。
-- `scripts/`：GitHub 数据刷新与构建产物内部链接检查。
+- `scripts/`：内容新建/手工归档/导入/导出、GitHub 数据刷新、链接与可见性检查、搜索索引。
 - `public/`：静态资源；文章图片与附件放在 `public/media/`。
 - `docs/`：架构、内容字段及写作约定。
 

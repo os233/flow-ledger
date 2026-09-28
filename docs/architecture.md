@@ -1,6 +1,6 @@
 # 架构说明
 
-本文描述流水账 P0（可发布基础站）的技术架构，供后续阶段（P1 写作导入导出、P2 AI 解析归档、P3 主题市场）扩展时对照。
+本文描述流水账已实现阶段（P0 可发布基础站、P1 写作导入导出、P2 首批手工归档流）的技术架构，供后续阶段（P2 Worker 在线解析、P3 主题市场）扩展时对照。
 
 ## 总体结构
 
@@ -10,9 +10,10 @@ flow-ledger/
   content/                  # 唯一内容源：notes / archives / projects / posts / pages
   docs/                     # 架构与内容规范
   public/                   # 静态资源：media/、favicon.svg、og-default.png
-  scripts/
+  scripts/                  # 内容工具链（new-post / new-archive / import / export）
     fetch-github-data.mjs   # 拉取项目卡片数据 → src/data/github-cache.json
     check-links.mjs         # 构建产物内部链接检查
+    check-visibility.mjs    # 私密/草稿内容不进产物（含 Pagefind 索引碎片）的机器校验
   src/
     content.config.ts       # 内容集合定义 + Zod schema
     data/github-cache.json  # GitHub 项目数据构建期缓存（提交进仓库）
@@ -80,6 +81,6 @@ GitHub Pages 项目站点部署在 `<owner>.github.io/flow-ledger/` 子路径下
 
 ## 后续阶段的接入点
 
-- **P1**：`scripts/` 下加导入器（MD/HTML/WXR → content/）与导出器；`docs/content-guide.md` 提供新建文章模板；Pagefind 在 build 后挂 `pagefind` 索引步骤（选用支持中日韩索引的 extended 构建）。
-- **P2**：Cloudflare Worker 独立部署，产出标准 Markdown 落到 `content/archives/`（经 PR 确认），复用 archives schema 的 `sourceUrl/provider/capturedAt/format/originalHash`。
+- **P1（已完成）**：新建/导入/导出脚本、PR 预览部署、Pagefind 索引（build 后挂 `pagefind`，CJK extended 构建），验收见 [p1-acceptance.md](p1-acceptance.md)。
+- **P2（首批已实施）**：手工归档流 `scripts/new-archive.mjs`（`npm run archive`）——粘贴的 Markdown/HTML 转换为 `content/archives/` 草稿，带完整 archives frontmatter、敏感信息正则扫描与可选原始快照（门槛与裁剪决策见 [p2-charter.md](p2-charter.md)）。Cloudflare Worker 在线解析、逐平台适配器与 LLM 增强仍为**规划**，落地时产出标准 Markdown 落到 `content/archives/`（经 PR 确认），复用 archives schema 的 `sourceUrl/provider/capturedAt/format/originalHash`。
 - **P3**：主题以 npm 包或 GitHub 仓库形式提供令牌与 slot 组件，`theme-manifest.json` 登记元数据；安装走 PR + 许可证扫描 + 构建回归。

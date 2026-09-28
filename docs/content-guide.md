@@ -94,6 +94,25 @@ featured: true          # 可选，首页/列表突出显示
 
 放入 `public/media/`。注意部署在 `/flow-ledger/` 子路径时，正文中引用图片建议使用相对路径或构建期处理（P1 的导入器会统一处理此问题）。
 
+## AI 对话手工归档（P2 首批）
+
+把分享页复制出的内容保存为本地文件（Markdown 或 HTML 均可），用一条命令生成归档草稿：
+
+```bash
+npm run archive -- 对话.html --source-url https://claude.ai/share/xxxx --tags AI归档
+npm run archive -- 对话.md --source-url https://chatgpt.com/share/xxxx --slug my-chat --snapshot
+```
+
+脚本行为（详见 [p2-charter.md](p2-charter.md)）：
+
+- 自动识别 Markdown/HTML，HTML 自动转 Markdown；`<iframe>` 等无法保留的元素留占位注释；
+- 生成完整 archives Frontmatter：`sourceUrl`（缺省写占位符，须修正后才能公开）、`provider`（可按 sourceUrl 域名推断）、`capturedAt`、`format`、`originalHash`（原文 SHA-256 指纹）；
+- 一律默认 `status: draft`，绝不自动公开；
+- 本机正则扫描疑似邮箱、API key、手机号、私钥块、JWT 等，逐条提示人工核对；
+- `--snapshot` 把原始 HTML 存到 `content/archives/`（构建产物不包含，仅入 Git 保存）——**不要**把快照放进 `public/media/`，静态托管下未引用文件也能被直接 URL 访问。
+
+发布流程：`npm run dev` 预览草稿 → 逐条核对扫描清单、`sourceUrl`/`provider` → 确认后把 `status` 改为 `public`。
+
 ## 快速开始
 
 1. 用脚本新建（推荐，自动生成合法 Frontmatter，默认 `status: draft`）：
