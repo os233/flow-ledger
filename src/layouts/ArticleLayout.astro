@@ -80,7 +80,7 @@ const hasToc = headings.some((h) => h.depth >= 2 && h.depth <= 3);
             {entry.data.tags.map((tag) => (
               <li>
                 <a
-                  href={withBase(`/tags/${tag}/`)}
+                  href={withBase(`/tags/${encodeURIComponent(tag)}/`)}
                   class="inline-block rounded-pill bg-muted px-2.5 py-0.5 text-xs text-ink-2 hover:text-accent transition-colors"
                 >
                   #{tag}

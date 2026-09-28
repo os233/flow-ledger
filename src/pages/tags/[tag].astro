@@ -5,15 +5,21 @@ import { getFeedEntries } from '@/lib/content';
 
 export async function getStaticPaths() {
   const entries = await getFeedEntries();
-  const tags = new Set<string>();
-  for (const e of entries) for (const t of e.data.tags) tags.add(t);
-  // tag 必须经 props 显式传递：Astro.props 只含 getStaticPaths 传入的 props，
+  // 按标签一次分组，避免渲染期再调一次 getFeedEntries
+  const byTag = new Map<string, typeof entries>();
+  for (const e of entries) {
+    for (const t of e.data.tags) {
+      const list = byTag.get(t) ?? [];
+      list.push(e);
+      byTag.set(t, list);
+    }
+  }
+  // tag 与 entries 都必须经 props 显式传递：Astro.props 只含 getStaticPaths 传入的 props，
   // 路由参数在 Astro.params 里，混用会导致页面拿到 undefined（所有标签页渲染为空）
-  return [...tags].map((tag) => ({ params: { tag }, props: { tag } }));
+  return [...byTag].map(([tag, tagged]) => ({ params: { tag }, props: { tag, entries: tagged } }));
 }
 
-const { tag } = Astro.props;
-const entries = (await getFeedEntries()).filter((e) => e.data.tags.includes(tag));
+const { tag, entries } = Astro.props;
 ---
 
 <BaseLayout title={`标签：${tag}`} description={`标签 #${tag} 下的全部内容。`}>

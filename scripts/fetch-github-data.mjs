@@ -9,7 +9,7 @@
  * - 可选环境变量 GITHUB_TOKEN：仅用于提高匿名限额（Actions 中用 github.token）；
  * - 每日由 .github/workflows/refresh-github-data.yml 定时执行并提交。
  */
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -28,7 +28,6 @@ function extractRepos(md) {
 }
 
 async function collectRepos() {
-  const { readdir } = await import('node:fs/promises');
   const files = (await readdir(PROJECTS_DIR)).filter((f) => f.endsWith('.md'));
   const repos = new Set();
   for (const file of files) {
