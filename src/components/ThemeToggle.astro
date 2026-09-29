@@ -56,6 +56,7 @@ const labels: Record<Theme, string> = {
           : 'light'
         : theme;
     document.documentElement.classList.toggle('dark', resolved === 'dark');
+    // 每次实时取按钮：View Transitions 客户端导航会更换 DOM
     const btn = document.getElementById('theme-toggle');
     if (!btn) return;
     const icons = btn.querySelectorAll<SVGElement>('[data-icon]');
@@ -67,14 +68,27 @@ const labels: Record<Theme, string> = {
 
   apply(storedTheme());
 
-  // auto 模式下跟随系统深浅色切换（长驻页面不刷新也要生效）
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if (storedTheme() === 'auto') apply('auto');
-  });
+  // 本脚本体积小，会被 Astro 内联进各页面 HTML：客户端导航会重复执行整个模块。
+  // 事件注册用 window 标记保证只发生一次（window 在客户端导航间保留，完整刷新后重置）。
+  const w = window as typeof window & { __flowThemeToggleBound?: boolean };
+  if (!w.__flowThemeToggleBound) {
+    w.__flowThemeToggleBound = true;
 
-  document.getElementById('theme-toggle')?.addEventListener('click', () => {
-    const next = ORDER[(ORDER.indexOf(storedTheme()) + 1) % ORDER.length] as Theme;
-    localStorage.setItem(KEY, next);
-    apply(next);
-  });
+    // auto 模式下跟随系统深浅色切换（长驻页面不刷新也要生效）
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (storedTheme() === 'auto') apply('auto');
+    });
+
+    // 事件委托到 document：客户端导航更换按钮 DOM 后依然有效
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement | null;
+      if (!target?.closest?.('#theme-toggle')) return;
+      const next = ORDER[(ORDER.indexOf(storedTheme()) + 1) % ORDER.length] as Theme;
+      localStorage.setItem(KEY, next);
+      apply(next);
+    });
+
+    // 客户端导航后重建按钮图标与 aria 状态
+    document.addEventListener('astro:after-swap', () => apply(storedTheme()));
+  }
 </script>

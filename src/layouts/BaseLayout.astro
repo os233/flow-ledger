@@ -1,4 +1,5 @@
 ---
+import { ClientRouter } from 'astro:transitions';
 import Header from '@/components/Header.astro';
 import MobileDrawer from '@/components/MobileDrawer.astro';
 import Footer from '@/components/Footer.astro';
@@ -45,6 +46,8 @@ const noindex = process.env.PUBLIC_NOINDEX === '1';
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
+    <!-- 客户端导航（View Transitions）：切换页面更连贯，交互脚本需对 swap 安全 -->
+    <ClientRouter />
     <title>{fullTitle}</title>
     <meta name="description" content={desc} />
     {noindex && <meta name="robots" content="noindex" />}
@@ -105,34 +108,59 @@ const noindex = process.env.PUBLIC_NOINDEX === '1';
     <Footer />
 
     <script>
-      // 全站搜索快捷键：/ 或 Ctrl/Cmd+K 跳转搜索页并聚焦输入框；已在搜索页时仅聚焦。
-      // 焦点在输入控件 / 富文本编辑器内时不抢占（避免干扰打字）。
-      const BASE = import.meta.env.BASE_URL.replace(/\/+$/, '');
+      // 本脚本被内联进各页面 HTML，客户端导航会重复执行：
+      // 事件注册用 window 标记保证只发生一次（window 在客户端导航间保留）
+      const w = window as typeof window & { __flowBaseBound?: boolean };
+      if (!w.__flowBaseBound) {
+        w.__flowBaseBound = true;
 
-      function openSearch() {
-        if (window.location.pathname.startsWith(`${BASE}/search`)) {
-          document.querySelector<HTMLInputElement>('.pagefind-ui__search-input')?.focus();
-          return;
-        }
-        window.location.href = `${BASE}/search/?focus=1`;
+        // 客户端导航 swap 会按新页面的静态 <html> 重置属性，暗色类会丢失，
+        // 换页后按存储偏好重放（与首帧防闪烁脚本同一套判定）
+        document.addEventListener('astro:after-swap', () => {
+          let theme = 'light';
+          try {
+            const stored = localStorage.getItem('flow-ledger-theme');
+            theme =
+              stored === 'light' || stored === 'dark'
+                ? stored
+                : window.matchMedia('(prefers-color-scheme: dark)').matches
+                  ? 'dark'
+                  : 'light';
+          } catch {
+            /* 隐私模式下忽略 */
+          }
+          document.documentElement.classList.toggle('dark', theme === 'dark');
+        });
+
+        // 全站搜索快捷键：/ 或 Ctrl/Cmd+K 跳转搜索页并聚焦输入框；已在搜索页时仅聚焦。
+        // 焦点在输入控件 / 富文本编辑器内时不抢占（避免干扰打字）。
+        const BASE = import.meta.env.BASE_URL.replace(/\/+$/, '');
+
+        const openSearch = () => {
+          if (window.location.pathname.startsWith(`${BASE}/search`)) {
+            document.querySelector<HTMLInputElement>('.pagefind-ui__search-input')?.focus();
+            return;
+          }
+          window.location.href = `${BASE}/search/?focus=1`;
+        };
+
+        document.addEventListener('keydown', (e) => {
+          if (e.defaultPrevented || e.isComposing) return;
+          if (e.key !== '/' && !((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) return;
+          const target = e.target as HTMLElement | null;
+          if (
+            target &&
+            (target.tagName === 'INPUT' ||
+              target.tagName === 'TEXTAREA' ||
+              target.tagName === 'SELECT' ||
+              target.isContentEditable)
+          ) {
+            return;
+          }
+          e.preventDefault();
+          openSearch();
+        });
       }
-
-      document.addEventListener('keydown', (e) => {
-        if (e.defaultPrevented || e.isComposing) return;
-        if (e.key !== '/' && !((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k')) return;
-        const target = e.target as HTMLElement | null;
-        if (
-          target &&
-          (target.tagName === 'INPUT' ||
-            target.tagName === 'TEXTAREA' ||
-            target.tagName === 'SELECT' ||
-            target.isContentEditable)
-        ) {
-          return;
-        }
-        e.preventDefault();
-        openSearch();
-      });
     </script>
   </body>
 </html>

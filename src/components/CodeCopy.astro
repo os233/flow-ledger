@@ -53,4 +53,14 @@
 
   enhanceCodeCopy();
   enhanceExternalLinks();
+  // View Transitions 客户端导航后对新正文重新增强；两个函数都有幂等护栏。
+  // after-swap 注册用 window 标记防重复（脚本被内联，客户端导航会重复执行）
+  const w = window as typeof window & { __flowProseEnhanceBound?: boolean };
+  if (!w.__flowProseEnhanceBound) {
+    w.__flowProseEnhanceBound = true;
+    document.addEventListener('astro:after-swap', () => {
+      enhanceCodeCopy();
+      enhanceExternalLinks();
+    });
+  }
 </script>

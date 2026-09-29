@@ -65,14 +65,21 @@ const nav = links.map((l) => ({ ...l, active: isNavActive(path, l.href) }));
 </div>
 
 <script>
-  // 无障碍抽屉：打开时焦点移入、Esc / 点击遮罩关闭、Tab 循环限制在抽屉内
-  const drawer = document.getElementById('mobile-drawer');
-  const openBtn = document.getElementById('menu-open');
-  const closeBtn = document.getElementById('menu-close');
-  const backdrop = document.getElementById('drawer-backdrop');
-  const panel = document.getElementById('drawer-panel');
+  // 无障碍抽屉：打开时焦点移入、Esc / 点击遮罩关闭、Tab 循环限制在抽屉内。
+  // 事件全部委托到 document：本模块每次完整加载只执行一次，
+  // View Transitions 客户端导航更换 DOM 后依然有效（元素在事件触发时实时查询）。
+  function drawerEls() {
+    return {
+      drawer: document.getElementById('mobile-drawer'),
+      openBtn: document.getElementById('menu-open'),
+      closeBtn: document.getElementById('menu-close'),
+      backdrop: document.getElementById('drawer-backdrop'),
+      panel: document.getElementById('drawer-panel'),
+    };
+  }
 
   function openDrawer() {
+    const { drawer, openBtn, closeBtn, panel } = drawerEls();
     if (!drawer) return;
     drawer.classList.remove('hidden');
     openBtn?.setAttribute('aria-expanded', 'true');
@@ -81,6 +88,7 @@ const nav = links.map((l) => ({ ...l, active: isNavActive(path, l.href) }));
   }
 
   function closeDrawer() {
+    const { drawer, openBtn } = drawerEls();
     if (!drawer) return;
     drawer.classList.add('hidden');
     openBtn?.setAttribute('aria-expanded', 'false');
@@ -88,32 +96,48 @@ const nav = links.map((l) => ({ ...l, active: isNavActive(path, l.href) }));
     document.body.style.overflow = '';
   }
 
-  openBtn?.addEventListener('click', openDrawer);
-  closeBtn?.addEventListener('click', closeDrawer);
-  backdrop?.addEventListener('click', closeDrawer);
+  // 事件注册用 window 标记防重复：本脚本会被内联进各页面 HTML，客户端导航会重复执行
+  const w = window as typeof window & { __flowDrawerBound?: boolean };
+  if (!w.__flowDrawerBound) {
+    w.__flowDrawerBound = true;
 
-  drawer?.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      closeDrawer();
-      return;
-    }
-    if (e.key === 'Tab' && panel) {
-      const focusables = panel.querySelectorAll<HTMLElement>('a[href], button');
-      if (focusables.length === 0) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
+    document.addEventListener('click', (e) => {
+      const target = (e.target as HTMLElement | null)?.closest?.(
+        '#menu-open, #menu-close, #drawer-backdrop',
+      );
+      if (!target) return;
+      if (target.id === 'menu-open') openDrawer();
+      else closeDrawer();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      const { drawer, panel } = drawerEls();
+      if (!drawer || drawer.classList.contains('hidden')) return;
+      if (e.key === 'Escape') {
+        closeDrawer();
+        return;
       }
-    }
-  });
+      if (e.key === 'Tab' && panel) {
+        const focusables = panel.querySelectorAll<HTMLElement>('a[href], button');
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
 
-  // 抽屉打开时窗口拉宽到 md+：抽屉被纯 CSS 隐藏，滚动锁定会残留，主动关闭
-  window.matchMedia('(min-width: 768px)').addEventListener('change', (e) => {
-    if (e.matches && drawer && !drawer.classList.contains('hidden')) closeDrawer();
-  });
+    // 抽屉打开时窗口拉宽到 md+：抽屉被纯 CSS 隐藏，滚动锁定会残留，主动关闭
+    window.matchMedia('(min-width: 768px)').addEventListener('change', (e) => {
+      if (e.matches) {
+        const { drawer } = drawerEls();
+        if (drawer && !drawer.classList.contains('hidden')) closeDrawer();
+      }
+    });
+  }
 </script>
