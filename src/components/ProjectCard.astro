@@ -32,8 +32,8 @@ const description = entry.data.summary ?? cached?.description ?? '暂无简介';
 
 <article
   class:list={[
-    'rounded-card border bg-raised p-4 sm:p-5 transition-shadow hover:shadow-md',
-    featured ? 'border-accent' : 'border-line',
+    'rounded-card border bg-raised p-4 sm:p-5 transition-[border-color,box-shadow] hover:shadow-md',
+    featured ? 'border-accent' : 'border-line hover:border-accent/40',
   ]}
   aria-label={`项目：${entry.data.title}`}
 >

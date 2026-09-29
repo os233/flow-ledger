@@ -24,7 +24,7 @@ const nav = links.map((l) => ({ ...l, active: isNavActive(path, l.href) }));
   aria-modal="true"
   aria-label="移动端导航菜单"
 >
-  <div id="drawer-backdrop" class="absolute inset-0 bg-black/50"></div>
+  <div id="drawer-backdrop" class="absolute inset-0 bg-overlay"></div>
   <nav
     id="drawer-panel"
     class="absolute right-0 top-0 flex h-full w-64 max-w-[80vw] flex-col border-l border-line bg-raised p-4 shadow-xl"
