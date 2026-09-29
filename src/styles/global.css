@@ -26,6 +26,7 @@
   --color-link: #1d4ed8;
   --color-code-bg: #f5f5f4;
   --color-badge-draft: #a16207;
+  --color-overlay: rgb(0 0 0 / 0.5); /* 抽屉等全屏遮罩 */
   --color-logo-dot: #fbbf24; /* Header logo 圆点：独立品牌点缀色，明暗主题共用 */
 
   /* 字体 */
@@ -55,6 +56,7 @@
   --color-link: #93c5fd;
   --color-code-bg: #292524;
   --color-badge-draft: #facc15;
+  --color-overlay: rgb(0 0 0 / 0.7);
 }
 
 /*
@@ -85,6 +87,8 @@
   --color-accent: var(--color-accent);
   --color-accent-soft: var(--color-accent-soft);
   --color-link: var(--color-link);
+  --color-badge-draft: var(--color-badge-draft);
+  --color-overlay: var(--color-overlay);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --radius-card: var(--radius-card);
@@ -100,6 +104,14 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* 标题平衡换行（避免中文标题末行只有一两个字），段落优化断行 */
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+.prose-flow p {
+  text-wrap: pretty;
 }
 
 /* 无障碍键盘操作：可见的聚焦环 */
@@ -147,6 +159,10 @@ body {
 .prose-flow h3 { font-size: 1.2rem; }
 .prose-flow h4 { font-size: 1.05rem; }
 .prose-flow p { margin: 1em 0; }
+/*
+ * 链接范式：正文（.prose-flow）内常驻下划线，保证长文扫读时链接可辨；
+ * 界面链接（导航/卡片/页脚）一律默认无下划线，悬停时给颜色或下划线反馈。
+ */
 .prose-flow a {
   color: var(--color-link);
   text-decoration: underline;

@@ -29,7 +29,7 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
               href={`${Astro.url.pathname}#${h.slug}`}
               class:list={[
                 'block -ml-px border-l-2 border-transparent hover:border-accent hover:text-accent transition-colors',
-                h.depth === 2 ? 'text-ink-2' : 'text-ink-3 text-[0.8rem]',
+                h.depth === 2 ? 'text-ink-2' : 'text-ink-3 text-xs',
               ]}
             >
               {h.text}
@@ -42,10 +42,18 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
 }
 
 <script>
-  // 目录滚动定位（scrollspy）：IntersectionObserver 监听标题进入「头部窄带」，
-  // 把当前章节链接标记为 aria-current="location"，高亮样式由 global.css 的 .toc 规则提供。
-  const navs = document.querySelectorAll<HTMLElement>('[data-toc]');
-  if (navs.length > 0 && 'IntersectionObserver' in window) {
+  // 目录滚动定位（scrollspy）+ 移动端折叠目录收起。
+  // View Transitions 客户端导航会更换标题与目录 DOM，
+  // astro:after-swap 时重新初始化（旧观察器先断开，避免泄漏）。
+  let observer: IntersectionObserver | null = null;
+
+  function initToc() {
+    observer?.disconnect();
+    observer = null;
+
+    const navs = document.querySelectorAll<HTMLElement>('[data-toc]');
+    if (navs.length === 0 || !('IntersectionObserver' in window)) return;
+
     const linksBySlug = new Map<string, HTMLAnchorElement[]>();
     navs.forEach((nav) => {
       // 目录 href 含完整路径（pathname + #slug），不能用 [href^="#"] 匹配，
@@ -74,7 +82,7 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
 
     // rootMargin 收窄为 header 下方的窄带：标题进入视为当前章节；
     // 离开窄带后保持上一个当前值，避免长段落间高亮闪烁
-    const observer = new IntersectionObserver(
+    observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) setActive(entry.target.id);
@@ -82,15 +90,23 @@ const items = headings.filter((h) => h.depth >= 2 && h.depth <= 3);
       },
       { rootMargin: '-80px 0px -70% 0px' },
     );
-    headingEls.forEach((el) => observer.observe(el));
+    headingEls.forEach((el) => observer!.observe(el));
 
     // 移动端折叠目录：点击条目跳转后收起，避免占住正文起点
+    // （details 节点随旧 DOM 更换销毁，其监听器一并回收，无需清理）
     document.querySelectorAll<HTMLDetailsElement>('[data-toc-mobile]').forEach((details) => {
       details.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        const anchor = target.closest('a');
+        const anchor = (e.target as HTMLElement).closest('a');
         if (anchor?.hash) details.open = false;
       });
     });
+  }
+
+  initToc();
+  // after-swap 注册用 window 标记防重复（脚本被内联，客户端导航会重复执行）
+  const w = window as typeof window & { __flowTocBound?: boolean };
+  if (!w.__flowTocBound) {
+    w.__flowTocBound = true;
+    document.addEventListener('astro:after-swap', initToc);
   }
 </script>

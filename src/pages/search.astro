@@ -34,50 +34,60 @@ const pagefindUiCss = withBase('/pagefind/pagefind-ui.css');
   </div>
 
   <script is:inline src={pagefindUiSrc} defer></script>
-  <script>
-    interface PagefindUICtor {
-      new (options: Record<string, unknown>): unknown;
-    }
-    const el = document.getElementById('search');
-    const hint = document.getElementById('search-hint');
-    const ctor = (window as unknown as { PagefindUI?: PagefindUICtor }).PagefindUI;
-    if (el && ctor) {
-      new ctor({
-        element: '#search',
-        showSubResults: true,
-        showImages: false,
-        // 界面文案汉化（Pagefind 1.5 Default UI 的键名为 placeholder 等单数形式，
-        // 自定义项优先于按页面语言自动加载的内置翻译）
-        translations: {
-          placeholder: '搜索灵感、归档、项目与博客…',
-          clear_search: '清除',
-          load_more: '加载更多结果',
-          search_label: '搜索本站',
-          zero_results: '没有找到与「[SEARCH_TERM]」相关的内容',
-          many_results: '共 [COUNT] 条与「[SEARCH_TERM]」相关的结果',
-          one_result: '共 [COUNT] 条与「[SEARCH_TERM]」相关的结果',
-          searching: '正在搜索「[SEARCH_TERM]」…',
-          error_search: '搜索出错，请重试',
-          input_hint: '输入时即时显示结果',
-        },
-      });
-      hint?.remove();
-      // 从全站快捷键（/ 或 Ctrl+K）跳转而来时，自动聚焦搜索输入框；
-      // Pagefind UI 异步挂载，轮询等待输入框出现
-      if (new URLSearchParams(window.location.search).has('focus')) {
-        let remaining = 20;
-        const tryFocus = () => {
-          const input = document.querySelector<HTMLInputElement>('.pagefind-ui__search-input');
-          if (input) {
-            input.focus();
-            return;
+  <!-- is:inline + data-astro-rerun：客户端导航再次进入本页时强制重新初始化 PagefindUI
+       （模块脚本按 src 去重只会执行一次，无法承担该职责）。
+       外部 pagefind-ui.js 为 defer 加载，会晚于本内联脚本就绪，故轮询等待。 -->
+  <script is:inline data-astro-rerun>
+    (function () {
+      var el = document.getElementById('search');
+      var hint = document.getElementById('search-hint');
+      if (!el) return;
+      var tries = 60; // 50ms × 60 ≈ 3s 上限
+      (function tryInit() {
+        var Ctor = window.PagefindUI;
+        if (!Ctor) {
+          if (tries-- > 0) {
+            setTimeout(tryInit, 50);
+          } else if (hint) {
+            hint.classList.remove('hidden');
           }
-          if (remaining-- > 0) setTimeout(tryFocus, 100);
-        };
-        tryFocus();
-      }
-    } else {
-      hint?.classList.remove('hidden');
-    }
+          return;
+        }
+        el.innerHTML = ''; // 防重复挂载
+        new Ctor({
+          element: '#search',
+          showSubResults: true,
+          showImages: false,
+          // 界面文案汉化（Pagefind 1.5 Default UI 的键名为 placeholder 等单数形式，
+          // 自定义项优先于按页面语言自动加载的内置翻译）
+          translations: {
+            placeholder: '搜索灵感、归档、项目与博客…',
+            clear_search: '清除',
+            load_more: '加载更多结果',
+            search_label: '搜索本站',
+            zero_results: '没有找到与「[SEARCH_TERM]」相关的内容',
+            many_results: '共 [COUNT] 条与「[SEARCH_TERM]」相关的结果',
+            one_result: '共 [COUNT] 条与「[SEARCH_TERM]」相关的结果',
+            searching: '正在搜索「[SEARCH_TERM]」…',
+            error_search: '搜索出错，请重试',
+            input_hint: '输入时即时显示结果',
+          },
+        });
+        if (hint) hint.remove();
+        // 从全站快捷键（/ 或 Ctrl+K）跳转而来时，自动聚焦搜索输入框；
+        // Pagefind UI 异步挂载，轮询等待输入框出现
+        if (new URLSearchParams(window.location.search).has('focus')) {
+          var remaining = 20;
+          (function tryFocus() {
+            var input = document.querySelector('.pagefind-ui__search-input');
+            if (input) {
+              input.focus();
+              return;
+            }
+            if (remaining-- > 0) setTimeout(tryFocus, 100);
+          })();
+        }
+      })();
+    })();
   </script>
 </BaseLayout>

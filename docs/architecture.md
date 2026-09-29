@@ -28,7 +28,7 @@ flow-ledger/
 
 | 层级 | 实现 |
 | --- | --- |
-| 站点生成 | Astro 7 + TypeScript（strict） |
+| 站点生成 | Astro 7 + TypeScript（strict）；客户端导航用 astro:transitions（ClientRouter），交互脚本以 document 事件委托 + window 标记注册 / `astro:after-swap` 重放保证换页后可用 |
 | 内容 | Markdown / MDX + YAML Frontmatter，Astro Content Collections + Zod 校验 |
 | 样式 | Tailwind CSS 4 + CSS 变量设计令牌 |
 | 搜索 | Pagefind（P1 已接入：build 后建索引，CJK extended 构建，主题令牌见 `global.css`；UI 文案汉化，搜索页/404 整页排除出索引，全站 `/` 或 Ctrl+K 快捷键唤起） |
