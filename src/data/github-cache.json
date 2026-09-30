@@ -16,6 +16,14 @@
       "language": "TypeScript",
       "pushedAt": "2026-09-06T14:54:21Z",
       "htmlUrl": "https://github.com/YYsuni/2025-blog-public"
+    },
+    "os233/WaterReminder": {
+      "description": "一个轻量的 Android 喝水提醒应用。",
+      "stars": 0,
+      "forks": 0,
+      "language": "Kotlin",
+      "pushedAt": "2026-09-29T13:30:32Z",
+      "htmlUrl": "https://github.com/os233/WaterReminder"
     }
   }
 }
