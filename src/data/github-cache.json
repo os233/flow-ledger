@@ -1,12 +1,12 @@
 {
-  "fetchedAt": "2026-09-29T08:38:27.065Z",
+  "fetchedAt": "2026-09-30T08:39:15.718Z",
   "repos": {
     "withastro/astro": {
       "description": "The web framework for content-driven websites. ⭐️ Star to support our work!",
-      "stars": 62906,
-      "forks": 3820,
+      "stars": 62937,
+      "forks": 3822,
       "language": "TypeScript",
-      "pushedAt": "2026-09-29T06:32:20Z",
+      "pushedAt": "2026-09-29T20:38:58Z",
       "htmlUrl": "https://github.com/withastro/astro"
     },
     "YYsuni/2025-blog-public": {
