@@ -1,17 +1,17 @@
 {
-  "fetchedAt": "2026-10-07T08:46:29.734Z",
+  "fetchedAt": "2026-10-08T09:05:09.640Z",
   "repos": {
     "os233/flow-ledger": {
       "stars": 0,
       "forks": 0,
       "language": "JavaScript",
-      "pushedAt": "2026-10-06T09:04:07Z",
+      "pushedAt": "2026-10-07T08:46:31Z",
       "htmlUrl": "https://github.com/os233/flow-ledger"
     },
     "YYsuni/2025-blog-public": {
       "description": "开源blog，让你不写代码就开始写 blog，管理 blog 内容。无需服务器，无需费用。",
       "stars": 1648,
-      "forks": 875,
+      "forks": 873,
       "language": "TypeScript",
       "pushedAt": "2026-09-06T14:54:21Z",
       "htmlUrl": "https://github.com/YYsuni/2025-blog-public"
@@ -21,7 +21,7 @@
       "stars": 0,
       "forks": 0,
       "language": "Kotlin",
-      "pushedAt": "2026-10-06T14:47:56Z",
+      "pushedAt": "2026-10-07T11:35:50Z",
       "htmlUrl": "https://github.com/os233/WaterReminder"
     }
   }
